@@ -1,0 +1,1 @@
+{"version":3,"file":"fake-start-server-fn-resolver.js","names":[],"sources":["../../src/fake-start-server-fn-resolver.ts"],"sourcesContent":["export async function getServerFnById(\n  _id: string,\n  _access: { origin: 'client' | 'server' },\n): Promise<any> {}\n"],"mappings":";AAAA,eAAsB,gBACpB,KACA,SACc,CAAC"}

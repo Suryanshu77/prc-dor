@@ -1,0 +1,2 @@
+ALTER TABLE public.voting_periods
+ADD COLUMN IF NOT EXISTS results_published BOOLEAN NOT NULL DEFAULT FALSE;
