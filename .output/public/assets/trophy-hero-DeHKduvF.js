@@ -1,1 +1,0 @@
-var e=`/assets/trophy-hero-DzY0-szQ.jpg`;export{e as t};

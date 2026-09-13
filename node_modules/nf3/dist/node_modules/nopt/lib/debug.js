@@ -1,1 +1,0 @@
-module.exports=process.env.DEBUG_NOPT||process.env.NOPT_DEBUG?(...e)=>console.error(...e):()=>{};

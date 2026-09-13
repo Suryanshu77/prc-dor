@@ -1,1 +1,0 @@
-{"version":3,"file":"constants.js","names":[],"sources":["../../src/constants.ts"],"sourcesContent":["export const HEADERS = {\n  TSS_SHELL: 'X-TSS_SHELL',\n} as const\n"],"mappings":";AAAA,IAAa,UAAU,EACrB,WAAW,cACb"}

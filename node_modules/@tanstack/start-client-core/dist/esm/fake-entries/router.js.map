@@ -1,1 +1,0 @@
-{"version":3,"file":"router.js","names":[],"sources":["../../../src/fake-entries/router.ts"],"sourcesContent":["export function getRouter() {}\n"],"mappings":";AAAA,SAAgB,YAAY,CAAC"}

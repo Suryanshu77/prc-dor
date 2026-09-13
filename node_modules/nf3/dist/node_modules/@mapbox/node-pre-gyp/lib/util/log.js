@@ -1,1 +1,0 @@
-"use strict";const{createConsola}=require("consola/basic"),log=createConsola({stdout:process.stderr});module.exports=exports=log;
