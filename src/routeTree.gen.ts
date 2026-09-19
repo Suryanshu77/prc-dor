@@ -17,6 +17,7 @@ import { Route as AuthenticatedResultsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPlayersRouteImport } from './routes/_authenticated/players'
 import { Route as AuthenticatedHallOfFameRouteImport } from './routes/_authenticated/hall-of-fame'
+import { Route as AuthenticatedGameRouteImport } from './routes/_authenticated/game'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -61,6 +62,11 @@ const AuthenticatedHallOfFameRoute = AuthenticatedHallOfFameRouteImport.update({
   path: '/hall-of-fame',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGameRoute = AuthenticatedGameRouteImport.update({
+  id: '/game',
+  path: '/game',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/game': typeof AuthenticatedGameRoute
   '/hall-of-fame': typeof AuthenticatedHallOfFameRoute
   '/players': typeof AuthenticatedPlayersRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/game': typeof AuthenticatedGameRoute
   '/hall-of-fame': typeof AuthenticatedHallOfFameRoute
   '/players': typeof AuthenticatedPlayersRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/game': typeof AuthenticatedGameRoute
   '/_authenticated/hall-of-fame': typeof AuthenticatedHallOfFameRoute
   '/_authenticated/players': typeof AuthenticatedPlayersRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/analytics'
     | '/dashboard'
+    | '/game'
     | '/hall-of-fame'
     | '/players'
     | '/profile'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/analytics'
     | '/dashboard'
+    | '/game'
     | '/hall-of-fame'
     | '/players'
     | '/profile'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/analytics'
     | '/_authenticated/dashboard'
+    | '/_authenticated/game'
     | '/_authenticated/hall-of-fame'
     | '/_authenticated/players'
     | '/_authenticated/profile'
@@ -230,6 +242,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHallOfFameRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/game': {
+      id: '/_authenticated/game'
+      path: '/game'
+      fullPath: '/game'
+      preLoaderRoute: typeof AuthenticatedGameRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -276,6 +295,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedGameRoute: typeof AuthenticatedGameRoute
   AuthenticatedHallOfFameRoute: typeof AuthenticatedHallOfFameRoute
   AuthenticatedPlayersRoute: typeof AuthenticatedPlayersRouteWithChildren
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -287,6 +307,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedGameRoute: AuthenticatedGameRoute,
   AuthenticatedHallOfFameRoute: AuthenticatedHallOfFameRoute,
   AuthenticatedPlayersRoute: AuthenticatedPlayersRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,

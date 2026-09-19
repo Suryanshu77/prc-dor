@@ -7,6 +7,7 @@ import {
   Trophy,
   BarChart3,
   Crown,
+  Gamepad2,
   Shield,
   LogOut,
   UserCircle2,
@@ -31,6 +32,7 @@ const NAV: NavItem[] = [
   { to: "/results", label: "Results", icon: Trophy },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/hall-of-fame", label: "Hall of Fame", icon: Crown },
+  { to: "/game", label: "Game", icon: Gamepad2 },
   { to: "/admin", label: "Admin", icon: Shield, adminOnly: true },
 ];
 
