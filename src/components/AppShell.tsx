@@ -1,5 +1,6 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
+import { useProfile } from "@/lib/use-profile";
 import {
   Home,
   Users,
@@ -12,11 +13,20 @@ import {
   LogOut,
   UserCircle2,
   Menu,
+  ChevronDown,
+  Pencil,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavItem {
   to: string;
@@ -38,10 +48,15 @@ const NAV: NavItem[] = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, isAdmin, signOut } = useAuth();
+  const profileQ = useProfile();
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const meta = (user?.user_metadata ?? {}) as { full_name?: string; profile_image?: string };
-  const displayName = meta.full_name ?? user?.email ?? "Player";
+  const profile = profileQ.data;
+  const displayName =
+    profile?.nickname ||
+    profile?.full_name ||
+    user?.email?.split("@")[0] ||
+    "Player";
 
   const visible = NAV.filter((n) => !n.adminOnly || isAdmin);
 
@@ -60,7 +75,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Trophy className="h-5 w-5" />
             </div>
             <div>
-              <div className="font-display text-lg text-gold-gradient">PRC D'or</div>
+              <div className="font-display text-lg text-gold-gradient">
+                PRC D'or
+              </div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                 Football Awards
               </div>
@@ -91,39 +108,72 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="space-y-2 border-t border-border/50 pt-4">
-            <Link
-              to="/profile"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg p-2 hover:bg-secondary"
-            >
-              <PlayerAvatar path={meta.profile_image} name={displayName} className="h-9 w-9" />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{displayName}</div>
-                <div className="truncate text-xs text-muted-foreground">
-                  {isAdmin ? "Administrator" : "Player"}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-secondary"
+                >
+                  <PlayerAvatar
+                    path={profile?.profile_image}
+                    name={displayName}
+                    className="h-9 w-9"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">
+                      {displayName}
+                    </div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {isAdmin ? "Administrator" : "Player"}
+                    </div>
+                  </div>
+                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="right" className="w-56">
+                <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
+                <div className="px-2 pb-1.5 text-xs text-muted-foreground">
+                  {user?.email}
                 </div>
-              </div>
-              <UserCircle2 className="h-4 w-4 text-muted-foreground" />
-            </Link>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-muted-foreground"
-              onClick={() => signOut()}
-            >
-              <LogOut className="mr-2 h-4 w-4" /> Sign out
-            </Button>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild onClick={() => setOpen(false)}>
+                  <Link to="/profile">
+                    <UserCircle2 /> View profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild onClick={() => setOpen(false)}>
+                  <Link to="/profile" search={{ edit: true }}>
+                    <Pencil /> Edit profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut()}>
+                  <LogOut /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </aside>
 
       {/* Mobile top bar */}
       <header className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-border/50 glass-strong px-4 py-3 md:hidden">
-        <button onClick={() => setOpen((o) => !o)} className="rounded-md p-2 hover:bg-secondary">
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="rounded-md p-2 hover:bg-secondary"
+        >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="font-display text-base text-gold-gradient">PRC D'or</div>
-        <PlayerAvatar path={meta.profile_image} name={displayName} className="h-8 w-8" />
+        <div className="font-display text-base text-gold-gradient">
+          PRC D'or
+        </div>
+        <Link to="/profile" onClick={() => setOpen(false)}>
+          <PlayerAvatar
+            path={profile?.profile_image}
+            name={displayName}
+            className="h-8 w-8"
+          />
+        </Link>
       </header>
 
       <main className="flex-1 px-4 pb-12 pt-20 md:px-10 md:pt-10">
