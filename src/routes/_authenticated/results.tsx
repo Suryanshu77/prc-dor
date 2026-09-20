@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -14,29 +14,43 @@ export const Route = createFileRoute("/_authenticated/results")({
 });
 
 function ResultsPage() {
-  const periodQ = useQuery({
-  queryKey: ["active-period"],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from("voting_periods")
-      .select("results_published,title")
-      .order("year", { ascending: false })
-      .limit(1)
-      .single();
-
-    return data;
-  },
-});
-  const resultsQ = useQuery({
-    queryKey: ["leaderboard"],
+  const yearsQ = useQuery({
+    queryKey: ["years"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("player_results")
+        .from("voting_periods")
+        .select("id, year, results_published")
+        .order("year", { ascending: false });
+      return data ?? [];
+    },
+  });
+  const years = yearsQ.data ?? [];
+  const [periodId, setPeriodId] = useState<string | undefined>(
+    years[0]?.id,
+  );
+
+  useEffect(() => {
+    if (years.length && (!periodId || !years.some((y) => y.id === periodId))) {
+      setPeriodId(years[0].id);
+    }
+  }, [years, periodId]);
+
+  const period = years.find((y) => y.id === periodId);
+  const published = period?.results_published ?? false;
+
+  const resultsQ = useQuery({
+    queryKey: ["leaderboard", periodId],
+    queryFn: async () => {
+      if (!periodId) return [];
+      const { data } = await supabase
+        .from("player_results_by_period")
         .select("*")
+        .eq("voting_period_id", periodId)
         .order("total_points", { ascending: false })
         .order("first_place_votes", { ascending: false });
       return data ?? [];
     },
+    enabled: !!periodId,
     refetchInterval: 30_000,
   });
 
@@ -47,7 +61,6 @@ function ResultsPage() {
   }));
   const ranked = results.filter((r) => r.total_points > 0);
   const top3 = ranked.slice(0, 3);
-  const published = periodQ.data?.results_published ?? false;
 
   useEffect(() => {
     if (top3.length > 0 && top3[0].total_points > 0) {
@@ -57,7 +70,7 @@ function ResultsPage() {
 
   async function share() {
     const text = top3.length
-      ? `PRC D'or leader: ${top3[0].full_name} with ${top3[0].total_points} points 🏆`
+      ? `PRC D'or ${period?.year} leader: ${top3[0].full_name} with ${top3[0].total_points} points 🏆`
       : "PRC D'or — vote now";
     if (navigator.share) {
       try {
@@ -73,34 +86,43 @@ function ResultsPage() {
     <div className="space-y-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-gold">Live leaderboard</div>
-          <h1 className="font-display text-4xl">PRC D'or Standings</h1>
+          <div className="text-xs uppercase tracking-[0.2em] text-gold">Results</div>
+          <h1 className="font-display text-4xl">PRC D'or Results</h1>
         </div>
-        <Button variant="outline" onClick={share}>
-          <Share2 className="mr-2 h-4 w-4" /> Share
-        </Button>
+        <div className="flex items-center gap-3">
+          {years.length > 0 && (
+            <select
+              value={periodId ?? ""}
+              onChange={(e) => setPeriodId(e.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              aria-label="Select year"
+            >
+              {years.map((y) => (
+                <option key={y.id} value={y.id}>
+                  {y.year}{y.results_published ? "" : " (not announced)"}
+                </option>
+              ))}
+            </select>
+          )}
+          <Button variant="outline" onClick={share}>
+            <Share2 className="mr-2 h-4 w-4" /> Share
+          </Button>
+        </div>
       </header>
 
       {!published ? (
         <div className="glass-strong rounded-2xl p-14 text-center">
-
-  <div className="mb-6 text-6xl">
-    🏆
-  </div>
-
-  <h2 className="font-display text-3xl">
-    Results have not been announced yet
-  </h2>
-
-  <p className="mt-4 text-muted-foreground">
-    Voting has ended.
-  </p>
-
-  <p className="text-muted-foreground">
-    Please wait for the official PRC D'OR announcement.
-  </p>
-
-</div>
+          <div className="mb-6 text-6xl">🏆</div>
+          <h2 className="font-display text-3xl">
+            Results have not been announced yet
+          </h2>
+          <p className="mt-4 text-muted-foreground">
+            {period ? `The ${period.year} results have not been published yet.` : "Please select a year."}
+          </p>
+          <p className="text-muted-foreground">
+            Please wait for the official PRC D'OR announcement.
+          </p>
+        </div>
       ) : (
         <>
           {/* Podium */}
@@ -134,9 +156,6 @@ function ResultsPage() {
                         <PlayerAvatar path={r.profile_image} name={r.full_name ?? ""} className="h-9 w-9" />
                         <div>
                           <div className="font-medium">{r.full_name}</div>
-                          {r.nickname && (
-                            <div className="text-xs text-muted-foreground">"{r.nickname}"</div>
-                          )}
                         </div>
                       </div>
                     </td>

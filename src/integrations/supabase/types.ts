@@ -253,6 +253,30 @@ export type Database = {
         }
         Relationships: []
       }
+      player_results_by_period: {
+        Row: {
+          first_place_votes: number | null
+          full_name: string | null
+          id: string | null
+          jersey_number: number | null
+          nickname: string | null
+          position: Database["public"]["Enums"]["player_position"] | null
+          profile_image: string | null
+          total_points: number | null
+          total_rankings: number | null
+          voting_period_id: string | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_results_by_period_voting_period_id_fkey"
+            columns: ["voting_period_id"]
+            isOneToOne: false
+            referencedRelation: "voting_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_list_player_emails: {

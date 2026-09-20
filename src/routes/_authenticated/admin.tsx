@@ -90,9 +90,11 @@ function PeriodSection() {
 
   async function declareWinner(periodId: string) {
     const { data } = await supabase
-      .from("player_results")
+      .from("player_results_by_period")
       .select("*")
+      .eq("voting_period_id", periodId)
       .order("total_points", { ascending: false })
+      .order("first_place_votes", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (!data) return toast.error("No results yet");
