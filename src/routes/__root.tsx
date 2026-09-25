@@ -12,6 +12,7 @@ import { type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "@/components/ui/sonner";
+import { PRCDor2026WinnerPopup } from "@/components/PRCDor2026WinnerPopup";
 
 function NotFoundComponent() {
   return (
@@ -119,6 +120,7 @@ function RootComponent() {
       <AuthProvider>
         <Outlet />
         <Toaster theme="dark" position="top-center" richColors />
+        <PRCDor2026WinnerPopup />
       </AuthProvider>
     </QueryClientProvider>
   );

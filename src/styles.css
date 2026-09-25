@@ -153,3 +153,11 @@
 @utility animate-float { animation: float 4s ease-in-out infinite; }
 @utility animate-fade-up { animation: fade-up 0.5s ease-out both; }
 @utility animate-gold-pulse { animation: gold-pulse 2.5s ease-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .prc-dor-winner-popup,
+  .prc-dor-winner-popup * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
