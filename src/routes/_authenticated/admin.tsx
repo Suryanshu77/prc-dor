@@ -1,4 +1,5 @@
 import AdminLayout from "@/components/admin/AdminLayout";
+import { deletePlayer } from "@/lib/admin-delete-player.server";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -196,6 +197,11 @@ function ResetButton({ onConfirm }: { onConfirm: () => void }) {
 
 function PlayersSection() {
   const qc = useQueryClient();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const playersQ = useQuery({
     queryKey: ["admin-players"],
     queryFn: async () => {
@@ -211,14 +217,23 @@ function PlayersSection() {
     },
   });
 
-
-  async function remove(id: string) {
-    if (!confirm("Remove this player profile? (Their auth account stays but their data is removed.)")) return;
-    const { error } = await supabase.from("profiles").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Removed");
-      qc.invalidateQueries({ queryKey: ["admin-players"] });
+  async function confirmDelete() {
+    const target = deleteTarget;
+    if (!target || busyId !== null) return;
+    setBusyId(target.id);
+    try {
+      const result = await deletePlayer({ data: { targetId: target.id } });
+      if (result.ok) {
+        toast.success(`${target.name} deleted`);
+        setDeleteTarget(null);
+        qc.invalidateQueries({ queryKey: ["admin-players"] });
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete player",
+      );
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -249,7 +264,13 @@ function PlayersSection() {
                 <td className="px-3 py-2">{p.position}</td>
                 <td className="px-3 py-2">{p.jersey_number ?? "—"}</td>
                 <td className="px-3 py-2 text-right">
-                  <Button size="sm" variant="ghost" onClick={() => remove(p.id)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      setDeleteTarget({ id: p.id, name: p.full_name })
+                    }
+                  >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </td>
@@ -258,6 +279,48 @@ function PlayersSection() {
           </tbody>
         </table>
       </div>
+
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && busyId === null) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this player permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The player{" "}
+              <span className="font-semibold text-foreground">
+                {deleteTarget?.name}
+              </span>{" "}
+              will be permanently removed from PRC D'or.
+              <span className="mt-2 block">
+                This will remove their PRC D'OR data and permanently delete
+                their account. They will no longer be able to log in.
+              </span>
+            </AlertDialogDescription>
+            <div className="mt-1 text-sm font-medium text-destructive">
+              This action cannot be undone.
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busyId !== null}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busyId !== null}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+            >
+              {busyId !== null ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
