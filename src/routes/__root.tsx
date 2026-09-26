@@ -10,8 +10,9 @@ import {
 import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { AuthProvider } from "@/lib/auth";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import { Toaster } from "@/components/ui/sonner";
+import { PRCDorIntroPopup } from "@/components/PRCDorIntroPopup";
 import { PRCDor2026WinnerPopup } from "@/components/PRCDor2026WinnerPopup";
 
 function NotFoundComponent() {
@@ -119,9 +120,24 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Outlet />
-        <Toaster theme="dark" position="top-center" richColors />
-        <PRCDor2026WinnerPopup />
+        <AppOverlays />
       </AuthProvider>
     </QueryClientProvider>
+  );
+}
+
+/**
+ * Anonymous visitors get the "What is PRC D'OR?" intro first; the 2026 winner
+ * celebration is mounted only once a session exists, so the two never overlap.
+ */
+function AppOverlays() {
+  const { user, loading } = useAuth();
+
+  return (
+    <>
+      <Toaster theme="dark" position="top-center" richColors />
+      <PRCDorIntroPopup />
+      {!loading && user ? <PRCDor2026WinnerPopup /> : null}
+    </>
   );
 }

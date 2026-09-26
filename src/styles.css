@@ -156,7 +156,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .prc-dor-winner-popup,
-  .prc-dor-winner-popup * {
+  .prc-dor-winner-popup *,
+  .prc-dor-intro-popup,
+  .prc-dor-intro-popup * {
     animation: none !important;
     transition: none !important;
   }
