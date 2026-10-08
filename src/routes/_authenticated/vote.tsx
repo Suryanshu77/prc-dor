@@ -66,12 +66,28 @@ function VotePage() {
     },
   });
 
+  const resultsVisibleQ = useQuery({
+    queryKey: ["results-visible", periodQ.data?.id],
+    queryFn: async () => {
+      if (!periodQ.data?.id) return false;
+      const { data } = await supabase.rpc("is_period_results_visible", {
+        _period_id: periodQ.data!.id,
+      });
+      return data ?? false;
+    },
+    enabled: !!periodQ.data?.id,
+  });
+
+  const resultsVisible = resultsVisibleQ.data ?? false;
+
   const playersQ = useQuery({
     queryKey: ["players-vote"],
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, nickname, position, jersey_number, profile_image")
+        .select(
+          "id, full_name, nickname, position, jersey_number, profile_image",
+        )
         .order("full_name");
       return (data ?? []) as Player[];
     },
@@ -109,7 +125,11 @@ function VotePage() {
   const alreadyVoted = (myVoteQ.data ?? []).length > 0;
 
   if (periodQ.isLoading || playersQ.isLoading) {
-    return <div className="py-20 text-center text-muted-foreground">Loading the voting booth…</div>;
+    return (
+      <div className="py-20 text-center text-muted-foreground">
+        Loading the voting booth…
+      </div>
+    );
   }
   if (!periodQ.data?.is_active) {
     return (
@@ -120,11 +140,22 @@ function VotePage() {
     );
   }
   if (alreadyVoted) {
+    if (resultsVisible) {
+      return (
+        <EmptyState
+          title="Your vote is locked in"
+          desc="You've already cast your PRC D'or vote. Head over to results to see how it's shaping up."
+          cta={{
+            label: "View results",
+            onClick: () => navigate({ to: "/results" }),
+          }}
+        />
+      );
+    }
     return (
       <EmptyState
         title="Your vote is locked in"
-        desc="You've already cast your PRC D'or vote. Head over to results to see how it's shaping up."
-        cta={{ label: "View results", onClick: () => navigate({ to: "/results" }) }}
+        desc="You've already cast your PRC D'or vote. Live results are currently hidden while voting is in progress."
       />
     );
   }
@@ -175,11 +206,14 @@ function VotePage() {
   return (
     <div className="space-y-8">
       <header>
-        <div className="text-xs uppercase tracking-[0.2em] text-gold">Cast your vote</div>
+        <div className="text-xs uppercase tracking-[0.2em] text-gold">
+          Cast your vote
+        </div>
         <h1 className="font-display text-4xl">Rank your Top 10</h1>
         <p className="mt-1 text-muted-foreground">
-          Drag to reorder. 1st = 15 pts · 2nd = 12 · 3rd = 10 · 4th = 8 · 5th = 7 · 6th = 6 · 7th =
-          5 · 8th = 4 · 9th = 3 · 10th = 2. You can't vote for yourself.
+          Drag to reorder. 1st = 15 pts · 2nd = 12 · 3rd = 10 · 4th = 8 · 5th =
+          7 · 6th = 6 · 7th = 5 · 8th = 4 · 9th = 3 · 10th = 2. You can't vote
+          for yourself.
         </p>
       </header>
 
@@ -187,7 +221,9 @@ function VotePage() {
         {/* Ranking */}
         <div className="glass-strong rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-lg">Your ranking ({ranking.length}/10)</h2>
+            <h2 className="font-display text-lg">
+              Your ranking ({ranking.length}/10)
+            </h2>
             {ranking.length > 0 && (
               <button
                 className="text-xs text-muted-foreground hover:text-destructive"
@@ -203,11 +239,23 @@ function VotePage() {
               Add players from the right to start your top 10.
             </div>
           ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-              <SortableContext items={ranking.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onDragEnd}
+            >
+              <SortableContext
+                items={ranking.map((r) => r.id)}
+                strategy={verticalListSortingStrategy}
+              >
                 <ol className="space-y-2">
                   {ranking.map((p, i) => (
-                    <SortableRow key={p.id} player={p} index={i} onRemove={() => remove(p.id)} />
+                    <SortableRow
+                      key={p.id}
+                      player={p}
+                      index={i}
+                      onRemove={() => remove(p.id)}
+                    />
                   ))}
                 </ol>
               </SortableContext>
@@ -234,11 +282,18 @@ function VotePage() {
                 disabled={ranking.length >= 10}
                 className="group flex items-center gap-3 rounded-lg border border-border bg-secondary/40 p-3 text-left transition hover:border-[var(--gold)] disabled:opacity-40"
               >
-                <PlayerAvatar path={p.profile_image} name={p.full_name} className="h-10 w-10" />
+                <PlayerAvatar
+                  path={p.profile_image}
+                  name={p.full_name}
+                  className="h-10 w-10"
+                />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{p.full_name}</div>
+                  <div className="truncate text-sm font-medium">
+                    {p.full_name}
+                  </div>
                   <div className="text-xs text-muted-foreground">
-                    {p.position} {p.jersey_number ? `· #${p.jersey_number}` : ""}
+                    {p.position}{" "}
+                    {p.jersey_number ? `· #${p.jersey_number}` : ""}
                   </div>
                 </div>
                 <Plus className="h-4 w-4 text-gold opacity-0 transition group-hover:opacity-100" />
@@ -265,11 +320,16 @@ function VotePage() {
           </DialogHeader>
           <ol className="max-h-72 space-y-1 overflow-y-auto text-sm">
             {ranking.map((p, i) => (
-              <li key={p.id} className="flex items-center justify-between rounded-md bg-secondary/40 px-3 py-1.5">
+              <li
+                key={p.id}
+                className="flex items-center justify-between rounded-md bg-secondary/40 px-3 py-1.5"
+              >
                 <span>
                   <span className="text-gold">#{i + 1}</span> {p.full_name}
                 </span>
-                <span className="text-xs text-muted-foreground">{POINTS_BY_RANK[i + 1]} pts</span>
+                <span className="text-xs text-muted-foreground">
+                  {POINTS_BY_RANK[i + 1]} pts
+                </span>
               </li>
             ))}
           </ol>
@@ -282,7 +342,8 @@ function VotePage() {
               disabled={submitting}
               className="bg-gold-gradient text-background hover:opacity-90"
             >
-              <Check className="mr-1 h-4 w-4" /> {submitting ? "Submitting…" : "Confirm vote"}
+              <Check className="mr-1 h-4 w-4" />{" "}
+              {submitting ? "Submitting…" : "Confirm vote"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -300,7 +361,14 @@ function SortableRow({
   index: number;
   onRemove: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: player.id,
   });
   const style = {
@@ -314,19 +382,32 @@ function SortableRow({
       style={style}
       className="flex items-center gap-3 rounded-xl border border-[var(--gold)]/30 bg-secondary/30 p-3"
     >
-      <button {...attributes} {...listeners} className="cursor-grab touch-none text-muted-foreground">
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab touch-none text-muted-foreground"
+      >
         <GripVertical className="h-5 w-5" />
       </button>
       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-gradient font-display text-sm text-background">
         {index + 1}
       </div>
-      <PlayerAvatar path={player.profile_image} name={player.full_name} className="h-10 w-10" />
+      <PlayerAvatar
+        path={player.profile_image}
+        name={player.full_name}
+        className="h-10 w-10"
+      />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{player.full_name}</div>
         <div className="text-xs text-muted-foreground">{player.position}</div>
       </div>
-      <div className="text-sm font-medium text-gold">{POINTS_BY_RANK[index + 1]} pts</div>
-      <button onClick={onRemove} className="rounded-md p-1 text-muted-foreground hover:text-destructive">
+      <div className="text-sm font-medium text-gold">
+        {POINTS_BY_RANK[index + 1]} pts
+      </div>
+      <button
+        onClick={onRemove}
+        className="rounded-md p-1 text-muted-foreground hover:text-destructive"
+      >
         <X className="h-4 w-4" />
       </button>
     </li>
@@ -347,7 +428,10 @@ function EmptyState({
       <h2 className="font-display text-2xl text-gold-gradient">{title}</h2>
       <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
       {cta && (
-        <Button className="mt-5 bg-gold-gradient text-background hover:opacity-90" onClick={cta.onClick}>
+        <Button
+          className="mt-5 bg-gold-gradient text-background hover:opacity-90"
+          onClick={cta.onClick}
+        >
           {cta.label}
         </Button>
       )}

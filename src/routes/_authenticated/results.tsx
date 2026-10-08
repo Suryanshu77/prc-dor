@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { Trophy, Share2 } from "lucide-react";
+import { Trophy, Share2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authenticated/results")({
   head: () => ({ meta: [{ title: "Results — PRC D'or" }] }),
@@ -14,20 +15,19 @@ export const Route = createFileRoute("/_authenticated/results")({
 });
 
 function ResultsPage() {
+  const { isAdmin } = useAuth();
   const yearsQ = useQuery({
     queryKey: ["years"],
     queryFn: async () => {
       const { data } = await supabase
         .from("voting_periods")
-        .select("id, year, results_published")
+        .select("id, year, results_published, results_visible")
         .order("year", { ascending: false });
       return data ?? [];
     },
   });
   const years = yearsQ.data ?? [];
-  const [periodId, setPeriodId] = useState<string | undefined>(
-    years[0]?.id,
-  );
+  const [periodId, setPeriodId] = useState<string | undefined>(years[0]?.id);
 
   useEffect(() => {
     if (years.length && (!periodId || !years.some((y) => y.id === periodId))) {
@@ -38,20 +38,31 @@ function ResultsPage() {
   const period = years.find((y) => y.id === periodId);
   const published = period?.results_published ?? false;
 
+  const resultsVisibleQ = useQuery({
+    queryKey: ["results-visible", periodId],
+    queryFn: async () => {
+      if (!periodId) return false;
+      const { data } = await supabase.rpc("is_period_results_visible", {
+        _period_id: periodId,
+      });
+      return data ?? false;
+    },
+    enabled: !!periodId,
+  });
+
+  const resultsVisible = resultsVisibleQ.data ?? false;
+
   const resultsQ = useQuery({
     queryKey: ["leaderboard", periodId],
     queryFn: async () => {
       if (!periodId) return [];
-      const { data } = await supabase
-        .from("player_results_by_period")
-        .select("*")
-        .eq("voting_period_id", periodId)
-        .order("total_points", { ascending: false })
-        .order("first_place_votes", { ascending: false });
+      const { data } = await supabase.rpc("get_period_results", {
+        _period_id: periodId,
+      });
       return data ?? [];
     },
-    enabled: !!periodId,
-    refetchInterval: 30_000,
+    enabled: !!periodId && (published || resultsVisible),
+    refetchInterval: published || resultsVisible ? 30_000 : false,
   });
 
   const results = (resultsQ.data ?? []).map((r) => ({
@@ -64,7 +75,12 @@ function ResultsPage() {
 
   useEffect(() => {
     if (top3.length > 0 && top3[0].total_points > 0) {
-      confetti({ particleCount: 80, spread: 70, origin: { y: 0.3 }, colors: ["#D4AF37", "#FFD700", "#fff"] });
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.3 },
+        colors: ["#D4AF37", "#FFD700", "#fff"],
+      });
     }
   }, [top3.length]);
 
@@ -74,19 +90,29 @@ function ResultsPage() {
       : "PRC D'or — vote now";
     if (navigator.share) {
       try {
-        await navigator.share({ title: "PRC D'or", text, url: window.location.href });
-      } catch {}
+        await navigator.share({
+          title: "PRC D'or",
+          text,
+          url: window.location.href,
+        });
+      } catch {
+        // Ignore share cancellation
+      }
     } else {
       await navigator.clipboard.writeText(`${text} — ${window.location.href}`);
       toast.success("Copied to clipboard");
     }
   }
 
+  const showResults = published || resultsVisible || isAdmin;
+
   return (
     <div className="space-y-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-gold">Results</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-gold">
+            Results
+          </div>
           <h1 className="font-display text-4xl">PRC D'or Results</h1>
         </div>
         <div className="flex items-center gap-3">
@@ -99,7 +125,8 @@ function ResultsPage() {
             >
               {years.map((y) => (
                 <option key={y.id} value={y.id}>
-                  {y.year}{y.results_published ? "" : " (not announced)"}
+                  {y.year}
+                  {y.results_published ? "" : " (not announced)"}
                 </option>
               ))}
             </select>
@@ -110,18 +137,27 @@ function ResultsPage() {
         </div>
       </header>
 
-      {!published ? (
+      {!showResults ? (
         <div className="glass-strong rounded-2xl p-14 text-center">
-          <div className="mb-6 text-6xl">🏆</div>
+          <div className="mb-6 text-6xl">🔒</div>
           <h2 className="font-display text-3xl">
-            Results have not been announced yet
+            Live results are currently hidden
           </h2>
           <p className="mt-4 text-muted-foreground">
-            {period ? `The ${period.year} results have not been published yet.` : "Please select a year."}
+            {period
+              ? `The ${period.year} results are hidden while voting is in progress.`
+              : "Please select a year."}
           </p>
           <p className="text-muted-foreground">
-            Please wait for the official PRC D'OR announcement.
+            Results will be visible once the admin enables live results or
+            voting concludes.
           </p>
+          {isAdmin && (
+            <p className="mt-4 text-sm text-gold">
+              <Lock className="mr-1 h-4 w-4 inline" /> You are viewing as admin
+              — results are visible to you in the admin dashboard.
+            </p>
+          )}
         </div>
       ) : (
         <>
@@ -150,17 +186,27 @@ function ResultsPage() {
                     key={r.id}
                     className="border-b border-border/30 transition hover:bg-secondary/30"
                   >
-                    <td className="px-4 py-3 font-display text-gold">{i + 1}</td>
+                    <td className="px-4 py-3 font-display text-gold">
+                      {i + 1}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <PlayerAvatar path={r.profile_image} name={r.full_name ?? ""} className="h-9 w-9" />
+                        <PlayerAvatar
+                          path={r.profile_image}
+                          name={r.full_name ?? ""}
+                          className="h-9 w-9"
+                        />
                         <div>
                           <div className="font-medium">{r.full_name}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{r.position}</td>
-                    <td className="px-4 py-3 text-right">{r.first_place_votes}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {r.position}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {r.first_place_votes}
+                    </td>
                     <td className="px-4 py-3 text-right font-display text-base text-gold-gradient">
                       {r.total_points}
                     </td>
@@ -181,7 +227,13 @@ function Podium({
   height,
   winner,
 }: {
-  player: any;
+  player: {
+    id: string;
+    full_name: string | null;
+    position: string | null;
+    profile_image: string | null;
+    total_points: number;
+  } | null;
   place: number;
   height: string;
   winner?: boolean;
@@ -204,10 +256,14 @@ function Podium({
       <div
         className={`mt-4 w-full ${height} rounded-t-2xl ${winner ? "bg-gold-gradient" : "bg-secondary"} flex items-center justify-center shadow-gold`}
       >
-        <div className={`text-center ${winner ? "text-background" : "text-foreground"}`}>
+        <div
+          className={`text-center ${winner ? "text-background" : "text-foreground"}`}
+        >
           {winner && <Trophy className="mx-auto mb-1 h-6 w-6" />}
           <div className="font-display text-3xl">{player.total_points}</div>
-          <div className="text-[10px] uppercase tracking-widest opacity-80">points</div>
+          <div className="text-[10px] uppercase tracking-widest opacity-80">
+            points
+          </div>
         </div>
       </div>
     </div>

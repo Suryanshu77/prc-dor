@@ -4,7 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import trophyImg from "@/assets/trophy-hero.jpg";
-import { Trophy, Users, Vote, CalendarClock, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  Trophy,
+  Users,
+  Vote,
+  CalendarClock,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -19,7 +26,11 @@ function Dashboard() {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle();
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user!.id)
+        .maybeSingle();
       return data;
     },
   });
@@ -47,7 +58,8 @@ function Dashboard() {
         supabase.rpc("get_period_vote_stats", { _period_id: periodQ.data!.id }),
         supabase.rpc("has_voted_in_period", { _period_id: periodQ.data!.id }),
       ]);
-      const row = (stats.data ?? [])[0] as { vote_count: number; voter_count: number } | undefined;
+      const row = (stats.data ?? [])[0] as
+        { vote_count: number; voter_count: number } | undefined;
       return {
         playersCount: players.count ?? 0,
         voteCount: row?.vote_count ?? 0,
@@ -55,14 +67,29 @@ function Dashboard() {
         hasVoted: mine.data === true,
       };
     },
-
   });
+
+  const resultsVisibleQ = useQuery({
+    queryKey: ["results-visible", periodQ.data?.id],
+    queryFn: async () => {
+      if (!periodQ.data?.id) return false;
+      const { data } = await supabase.rpc("is_period_results_visible", {
+        _period_id: periodQ.data!.id,
+      });
+      return data ?? false;
+    },
+    enabled: !!periodQ.data?.id,
+  });
+
+  const resultsVisible = resultsVisibleQ.data ?? false;
 
   const profile = profileQ.data;
   const period = periodQ.data;
   const stats = statsQ.data;
   const completion =
-    stats && stats.playersCount > 0 ? Math.round((stats.votersCount / stats.playersCount) * 100) : 0;
+    stats && stats.playersCount > 0
+      ? Math.round((stats.votersCount / stats.playersCount) * 100)
+      : 0;
 
   return (
     <div className="space-y-8">
@@ -112,11 +139,15 @@ function Dashboard() {
               {period?.title ?? "PRC D'or"}
             </div>
             <h2 className="font-display text-4xl leading-tight md:text-5xl">
-              Who deserves the <span className="text-gold-gradient">PRC D'or {period?.year}</span>?
+              Who deserves the{" "}
+              <span className="text-gold-gradient">
+                PRC D'or {period?.year}
+              </span>
+              ?
             </h2>
             <p className="mt-4 max-w-md text-muted-foreground">
-              Voting is {period?.is_active ? "live" : "closed"}. Rank your top 10 players — your
-              voice helps crown the season's best.
+              Voting is {period?.is_active ? "live" : "closed"}. Rank your top
+              10 players — your voice helps crown the season's best.
             </p>
             <Countdown endsAt={period?.ends_at} />
             <div className="mt-6 flex gap-3">
@@ -127,13 +158,21 @@ function Dashboard() {
                 >
                   Cast your vote
                 </Link>
-              ) : (
+              ) : resultsVisible ? (
                 <Link
                   to="/results"
                   className="rounded-md bg-gold-gradient px-5 py-2.5 font-medium text-background shadow-gold transition hover:opacity-90"
                 >
                   See live results
                 </Link>
+              ) : (
+                <button
+                  className="rounded-md border border-border bg-background px-5 py-2.5 font-medium text-muted-foreground cursor-not-allowed"
+                  disabled
+                  title="Live results are currently hidden"
+                >
+                  Live results hidden
+                </button>
               )}
               <Link
                 to="/players"
@@ -163,7 +202,11 @@ function Dashboard() {
           label="Registered players"
           value={stats?.playersCount ?? 0}
         />
-        <StatCard icon={Vote} label="Votes submitted" value={stats?.voteCount ?? 0} />
+        <StatCard
+          icon={Vote}
+          label="Votes submitted"
+          value={stats?.voteCount ?? 0}
+        />
         <StatCard
           icon={Trophy}
           label="Voting completion"
@@ -194,7 +237,9 @@ function StatCard({
   return (
     <div className="glass rounded-2xl p-5 transition hover:shadow-gold">
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+          {label}
+        </span>
         <Icon className="h-4 w-4 text-gold" />
       </div>
       <div className="font-display text-3xl text-gold-gradient">{value}</div>
@@ -225,8 +270,12 @@ function Countdown({ endsAt }: { endsAt?: string | null }) {
 
   const Box = ({ v, l }: { v: number; l: string }) => (
     <div className="rounded-lg border border-border bg-secondary/50 px-3 py-2 text-center">
-      <div className="font-display text-2xl text-gold-gradient">{v.toString().padStart(2, "0")}</div>
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{l}</div>
+      <div className="font-display text-2xl text-gold-gradient">
+        {v.toString().padStart(2, "0")}
+      </div>
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+        {l}
+      </div>
     </div>
   );
 

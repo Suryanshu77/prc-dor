@@ -45,9 +45,7 @@ function AdminPage() {
             Admin
           </div>
 
-          <h1 className="font-display text-4xl">
-            Control room
-          </h1>
+          <h1 className="font-display text-4xl">Control room</h1>
         </header>
 
         <PeriodSection />
@@ -65,23 +63,47 @@ function PeriodSection() {
   const periodsQ = useQuery({
     queryKey: ["periods"],
     queryFn: async () => {
-      const { data } = await supabase.from("voting_periods").select("*").order("year", { ascending: false });
+      const { data } = await supabase
+        .from("voting_periods")
+        .select("*")
+        .order("year", { ascending: false });
       return data ?? [];
     },
   });
 
   async function toggle(id: string, active: boolean) {
     if (active) {
-      await supabase.from("voting_periods").update({ is_active: false }).neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase
+        .from("voting_periods")
+        .update({ is_active: false })
+        .neq("id", "00000000-0000-0000-0000-000000000000");
     }
-    await supabase.from("voting_periods").update({ is_active: active }).eq("id", id);
+    await supabase
+      .from("voting_periods")
+      .update({ is_active: active })
+      .eq("id", id);
     qc.invalidateQueries({ queryKey: ["periods"] });
     qc.invalidateQueries({ queryKey: ["active-period"] });
     toast.success("Updated");
   }
 
+  async function toggleResultsVisibility(id: string, visible: boolean) {
+    await supabase
+      .from("voting_periods")
+      .update({ results_visible: visible })
+      .eq("id", id);
+    qc.invalidateQueries({ queryKey: ["periods"] });
+    qc.invalidateQueries({ queryKey: ["active-period"] });
+    toast.success(
+      visible ? "Live results now visible" : "Live results now hidden",
+    );
+  }
+
   async function resetVotes(id: string) {
-    const { error } = await supabase.from("votes").delete().eq("voting_period_id", id);
+    const { error } = await supabase
+      .from("votes")
+      .delete()
+      .eq("voting_period_id", id);
     if (error) toast.error(error.message);
     else {
       toast.success("Votes reset");
@@ -90,25 +112,21 @@ function PeriodSection() {
   }
 
   async function declareWinner(periodId: string) {
-    const { data } = await supabase
-      .from("player_results_by_period")
-      .select("*")
-      .eq("voting_period_id", periodId)
-      .order("total_points", { ascending: false })
-      .order("first_place_votes", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!data) return toast.error("No results yet");
+    const { data } = await supabase.rpc("get_period_results", {
+      _period_id: periodId,
+    });
+    const winner = (data ?? [])[0];
+    if (!winner) return toast.error("No results yet");
     const period = periodsQ.data?.find((p) => p.id === periodId);
     if (!period) return;
     await supabase
-.from("voting_periods")
-.update({
-    winner_id: data.id,
-    is_active: false,
-    results_published: true,
-})
-.eq("id", periodId);
+      .from("voting_periods")
+      .update({
+        winner_id: data.id,
+        is_active: false,
+        results_published: true,
+      })
+      .eq("id", periodId);
     await supabase.from("hall_of_fame").upsert(
       {
         year: period.year,
@@ -126,22 +144,18 @@ function PeriodSection() {
   return (
     <section className="glass-strong rounded-2xl p-6">
       <h2 className="mb-4 font-display text-2xl">Voting periods</h2>
-            <div className="space-y-3">
+      <div className="space-y-3">
         {(periodsQ.data ?? []).map((p) => (
           <div
             key={p.id}
             className="flex flex-wrap items-center gap-4 rounded-lg border border-border p-4"
           >
             <div className="flex-1">
-              <div className="font-display text-lg">
-                {p.title}
-              </div>
+              <div className="font-display text-lg">{p.title}</div>
 
               <div className="text-xs text-muted-foreground">
                 Year {p.year} · ends{" "}
-                {p.ends_at
-                  ? new Date(p.ends_at).toLocaleDateString()
-                  : "—"}
+                {p.ends_at ? new Date(p.ends_at).toLocaleDateString() : "—"}
               </div>
             </div>
 
@@ -151,6 +165,40 @@ function PeriodSection() {
                 checked={p.is_active}
                 onCheckedChange={(v) => toggle(p.id, v)}
               />
+            </div>
+
+            <div className="flex items-center gap-2 text-sm">
+              Live Results
+              <Switch
+                checked={p.results_visible ?? false}
+                onCheckedChange={(v) => toggleResultsVisibility(p.id, v)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {p.is_active ? (
+                <span className="flex items-center gap-1 text-green-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-400" />{" "}
+                  OPEN
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-red-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-400" />{" "}
+                  CLOSED
+                </span>
+              )}
+              {" · "}
+              {p.results_visible ? (
+                <span className="flex items-center gap-1 text-green-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-400" />{" "}
+                  VISIBLE
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-red-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-400" />{" "}
+                  HIDDEN
+                </span>
+              )}
             </div>
 
             <Button
@@ -182,7 +230,8 @@ function ResetButton({ onConfirm }: { onConfirm: () => void }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Reset all votes?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes every vote for this period. Players can vote again.
+              This permanently deletes every vote for this period. Players can
+              vote again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -212,8 +261,16 @@ function PlayersSection() {
           .order("full_name"),
         supabase.rpc("admin_list_player_emails"),
       ]);
-      const emailMap = new Map((emails ?? []).map((e: { id: string; email: string }) => [e.id, e.email]));
-      return (profiles ?? []).map((p) => ({ ...p, email: emailMap.get(p.id) ?? "" }));
+      const emailMap = new Map(
+        (emails ?? []).map((e: { id: string; email: string }) => [
+          e.id,
+          e.email,
+        ]),
+      );
+      return (profiles ?? []).map((p) => ({
+        ...p,
+        email: emailMap.get(p.id) ?? "",
+      }));
     },
   });
 
@@ -239,7 +296,9 @@ function PlayersSection() {
 
   return (
     <section className="glass-strong rounded-2xl p-6">
-      <h2 className="mb-4 font-display text-2xl">Players ({playersQ.data?.length ?? 0})</h2>
+      <h2 className="mb-4 font-display text-2xl">
+        Players ({playersQ.data?.length ?? 0})
+      </h2>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-[0.15em] text-muted-foreground">
@@ -256,7 +315,11 @@ function PlayersSection() {
               <tr key={p.id} className="border-t border-border/30">
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <PlayerAvatar path={p.profile_image} name={p.full_name} className="h-8 w-8" />
+                    <PlayerAvatar
+                      path={p.profile_image}
+                      name={p.full_name}
+                      className="h-8 w-8"
+                    />
                     {p.full_name}
                   </div>
                 </td>
@@ -335,7 +398,12 @@ function HallOfFameSection() {
   async function add() {
     if (!winner || !year) return toast.error("Year and winner required");
     const { error } = await supabase.from("hall_of_fame").upsert(
-      { year, winner_name: winner, total_points: points || null, notes: notes || null },
+      {
+        year,
+        winner_name: winner,
+        total_points: points || null,
+        notes: notes || null,
+      },
       { onConflict: "year" },
     );
     if (error) toast.error(error.message);
@@ -354,7 +422,11 @@ function HallOfFameSection() {
       <div className="grid gap-3 sm:grid-cols-4">
         <div>
           <Label>Year</Label>
-          <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} />
+          <Input
+            type="number"
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+          />
         </div>
         <div className="sm:col-span-2">
           <Label>Winner name</Label>
@@ -362,14 +434,27 @@ function HallOfFameSection() {
         </div>
         <div>
           <Label>Points</Label>
-          <Input type="number" value={points} onChange={(e) => setPoints(e.target.value ? Number(e.target.value) : "")} />
+          <Input
+            type="number"
+            value={points}
+            onChange={(e) =>
+              setPoints(e.target.value ? Number(e.target.value) : "")
+            }
+          />
         </div>
         <div className="sm:col-span-4">
           <Label>Notes</Label>
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+          />
         </div>
       </div>
-      <Button className="mt-4 bg-gold-gradient text-background hover:opacity-90" onClick={add}>
+      <Button
+        className="mt-4 bg-gold-gradient text-background hover:opacity-90"
+        onClick={add}
+      >
         <Plus className="mr-1 h-4 w-4" /> Add entry
       </Button>
     </section>
