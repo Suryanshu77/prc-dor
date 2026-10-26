@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedVoteSpecialRouteImport } from './routes/_authenticated/vote-special'
 import { Route as AuthenticatedVoteRouteImport } from './routes/_authenticated/vote'
 import { Route as AuthenticatedResultsRouteImport } from './routes/_authenticated/results'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
@@ -37,6 +38,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedVoteSpecialRoute =
+  AuthenticatedVoteSpecialRouteImport.update({
+    id: '/vote-special',
+    path: '/vote-special',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedVoteRoute = AuthenticatedVoteRouteImport.update({
   id: '/vote',
   path: '/vote',
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/results': typeof AuthenticatedResultsRoute
   '/vote': typeof AuthenticatedVoteRoute
+  '/vote-special': typeof AuthenticatedVoteSpecialRoute
   '/players/$id': typeof AuthenticatedPlayersIdRoute
 }
 export interface FileRoutesByTo {
@@ -114,6 +122,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/results': typeof AuthenticatedResultsRoute
   '/vote': typeof AuthenticatedVoteRoute
+  '/vote-special': typeof AuthenticatedVoteSpecialRoute
   '/players/$id': typeof AuthenticatedPlayersIdRoute
 }
 export interface FileRoutesById {
@@ -130,6 +139,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/results': typeof AuthenticatedResultsRoute
   '/_authenticated/vote': typeof AuthenticatedVoteRoute
+  '/_authenticated/vote-special': typeof AuthenticatedVoteSpecialRoute
   '/_authenticated/players/$id': typeof AuthenticatedPlayersIdRoute
 }
 export interface FileRouteTypes {
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/results'
     | '/vote'
+    | '/vote-special'
     | '/players/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/results'
     | '/vote'
+    | '/vote-special'
     | '/players/$id'
   id:
     | '__root__'
@@ -175,6 +187,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/results'
     | '/_authenticated/vote'
+    | '/_authenticated/vote-special'
     | '/_authenticated/players/$id'
   fileRoutesById: FileRoutesById
 }
@@ -206,6 +219,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/vote-special': {
+      id: '/_authenticated/vote-special'
+      path: '/vote-special'
+      fullPath: '/vote-special'
+      preLoaderRoute: typeof AuthenticatedVoteSpecialRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/vote': {
       id: '/_authenticated/vote'
@@ -301,6 +321,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedResultsRoute: typeof AuthenticatedResultsRoute
   AuthenticatedVoteRoute: typeof AuthenticatedVoteRoute
+  AuthenticatedVoteSpecialRoute: typeof AuthenticatedVoteSpecialRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -313,6 +334,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedResultsRoute: AuthenticatedResultsRoute,
   AuthenticatedVoteRoute: AuthenticatedVoteRoute,
+  AuthenticatedVoteSpecialRoute: AuthenticatedVoteSpecialRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

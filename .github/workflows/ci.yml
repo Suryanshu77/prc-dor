@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      # Known baseline: ~50 type errors from stale generated Supabase types
+      # (src/integrations/supabase/types.ts is missing 4 RPCs and the
+      # voting_periods.results_visible column) plus 1 pre-existing vite.config.ts
+      # typing incompatibility. Flip continue-on-error to false once types are
+      # regenerated via the Lovable/Supabase workflow.
+      - name: typecheck (advisory until types regenerated)
+        run: npm run typecheck
+        continue-on-error: true

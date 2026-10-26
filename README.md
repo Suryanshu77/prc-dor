@@ -53,13 +53,13 @@ The PRC society's annual football community awards. Players register with a prof
 
 The project needs a Supabase project URL and the corresponding API keys. The following variables are required:
 
-| Variable | Description |
-| --- | --- |
-| `VITE_SUPABASE_URL` | Your Supabase project URL |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable (anon) key for the client |
-| `SUPABASE_URL` | Your Supabase project URL (server-side) |
-| `SUPABASE_PUBLISHABLE_KEY` | Supabase publishable (anon) key (server-side) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side admin operations only) |
+| Variable                        | Description                                                   |
+| ------------------------------- | ------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`             | Your Supabase project URL                                     |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable (anon) key for the client                |
+| `SUPABASE_URL`                  | Your Supabase project URL (server-side)                       |
+| `SUPABASE_PUBLISHABLE_KEY`      | Supabase publishable (anon) key (server-side)                 |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service role key (server-side admin operations only) |
 
 Example:
 

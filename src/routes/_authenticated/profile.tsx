@@ -22,6 +22,9 @@ import { toast } from "sonner";
 import { AtSign, Hash, Mail, Pencil } from "lucide-react";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+// Profile queries never select `email` (private); the form renders the
+// account email from the auth session instead (see Email rows below).
+type ProfileForm = Omit<Profile, "email">;
 type Position = Database["public"]["Enums"]["player_position"];
 
 const POSITIONS: Position[] = [
@@ -52,7 +55,7 @@ function ProfilePage() {
   const qc = useQueryClient();
   const profileQ = useProfile();
 
-  const [form, setForm] = useState<Profile | null>(null);
+  const [form, setForm] = useState<ProfileForm | null>(null);
   const [busy, setBusy] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);

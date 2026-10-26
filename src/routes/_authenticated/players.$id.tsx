@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { PROFILE_COLUMNS } from "@/lib/use-profile";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ArrowLeft, Trophy, Award, Hash, MapPin } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/players/$id")({
   head: () => ({ meta: [{ title: "Player — PRC D'or" }] }),
@@ -15,11 +17,17 @@ function PlayerPage() {
   const profileQ = useQuery({
     queryKey: ["profile", id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select(PROFILE_COLUMNS)
         .eq("id", id)
         .maybeSingle();
+      if (error) {
+        console.error("[player] failed to load profile", error);
+        toast.error("Couldn't load this profile.", {
+          id: "player-profile",
+        });
+      }
       return data;
     },
   });
@@ -27,13 +35,19 @@ function PlayerPage() {
   const activePeriodQ = useQuery({
     queryKey: ["active-period"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("voting_periods")
         .select("id")
         .eq("is_active", true)
         .order("year", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (error) {
+        console.error("[player] failed to load active period", error);
+        toast.error("Couldn't load the active voting period.", {
+          id: "player-period",
+        });
+      }
       return data;
     },
   });
@@ -42,10 +56,16 @@ function PlayerPage() {
     queryKey: ["player-period-rank", id, activePeriodQ.data?.id],
     enabled: !!activePeriodQ.data?.id,
     queryFn: async () => {
-      const { data } = await supabase.rpc("get_player_period_rank", {
+      const { data, error } = await supabase.rpc("get_player_period_rank", {
         _player_id: id,
         _period_id: activePeriodQ.data!.id,
       });
+      if (error) {
+        console.error("[player] failed to load rank", error);
+        toast.error("Couldn't load this player's rank.", {
+          id: "player-rank",
+        });
+      }
       return (data ?? [])[0] ?? null;
     },
   });

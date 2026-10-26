@@ -34,7 +34,9 @@ function Landing() {
             <Trophy className="h-5 w-5" />
           </div>
           <div>
-            <div className="font-display text-lg text-gold-gradient">PRC D'or</div>
+            <div className="font-display text-lg text-gold-gradient">
+              PRC D'or
+            </div>
             <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
               Est. 2024
             </div>
@@ -64,11 +66,13 @@ function Landing() {
             <Sparkles className="h-3 w-3" /> PRC D'or 2026
           </div>
           <h1 className="font-display text-5xl leading-tight text-foreground md:text-7xl">
-            Who deserves the <span className="text-gold-gradient">PRC D'or</span>?
+            Who deserves the{" "}
+            <span className="text-gold-gradient">PRC D'or</span>?
           </h1>
           <p className="mt-6 max-w-lg text-lg text-muted-foreground">
-            The annual football community award of the PRC society. Sign up, rank your top ten, and
-            crown the year's best player among 30+ legends of the pitch.
+            The annual football community award of the PRC society. Sign up,
+            rank your top ten, and crown the year's best player among 30+
+            legends of the pitch.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link

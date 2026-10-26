@@ -23,7 +23,8 @@ export function PlayerAvatar({ path, name, className, ring }: Props) {
     <div
       className={cn(
         "relative inline-flex items-center justify-center overflow-hidden rounded-full bg-secondary text-foreground/80 font-display font-semibold",
-        ring && "ring-2 ring-[var(--gold)] ring-offset-2 ring-offset-background",
+        ring &&
+          "ring-2 ring-[var(--gold)] ring-offset-2 ring-offset-background",
         className,
       )}
     >

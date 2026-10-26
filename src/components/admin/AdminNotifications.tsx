@@ -6,9 +6,11 @@ import { useAuth } from "@/lib/auth";
 import { Bell, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
-type AdminNotification = Database["public"]["Tables"]["admin_notifications"]["Row"];
+type AdminNotification =
+  Database["public"]["Tables"]["admin_notifications"]["Row"];
 
 interface ProfileMeta {
   id: string;
@@ -41,11 +43,17 @@ export default function AdminNotifications() {
     queryKey: ["admin-notifications"],
     enabled: isAdmin,
     queryFn: async (): Promise<EnrichedNotification[]> => {
-      const { data: notifs } = await supabase
+      const { data: notifs, error } = await supabase
         .from("admin_notifications")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(20);
+      if (error) {
+        console.error("[notifications] failed to load notifications", error);
+        toast.error("Couldn't load notifications.", {
+          id: "admin-notifications",
+        });
+      }
       const list = (notifs ?? []) as AdminNotification[];
       const ids = [...new Set(list.map((n) => n.user_id))];
       let profileMap = new Map<string, ProfileMeta>();
@@ -54,7 +62,9 @@ export default function AdminNotifications() {
           .from("profiles")
           .select("id, full_name, nickname, profile_image")
           .in("id", ids);
-        profileMap = new Map((profiles ?? []).map((p) => [p.id, p as ProfileMeta]));
+        profileMap = new Map(
+          (profiles ?? []).map((p) => [p.id, p as ProfileMeta]),
+        );
       }
       return list.map((n) => ({ ...n, profile: profileMap.get(n.user_id) }));
     },
@@ -81,7 +91,8 @@ export default function AdminNotifications() {
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) setOpen(false);
+      if (panelRef.current && !panelRef.current.contains(e.target as Node))
+        setOpen(false);
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
@@ -89,10 +100,19 @@ export default function AdminNotifications() {
 
   async function openNotification(n: AdminNotification) {
     if (!n.read_at) {
-      await supabase
+      const { error } = await supabase
         .from("admin_notifications")
         .update({ read_at: new Date().toISOString() })
         .eq("id", n.id);
+      if (error) {
+        console.error(
+          "[notifications] failed to mark notification read",
+          error,
+        );
+        toast.error("Couldn't mark the notification as read.", {
+          id: "admin-notifications-mark-read",
+        });
+      }
       qc.invalidateQueries({ queryKey: ["admin-notifications"] });
     }
     setOpen(false);
@@ -157,10 +177,16 @@ export default function AdminNotifications() {
                     </span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">{n.title}</span>
-                    <span className="block truncate text-sm text-muted-foreground">{n.message}</span>
+                    <span className="block truncate text-sm font-semibold">
+                      {n.title}
+                    </span>
+                    <span className="block truncate text-sm text-muted-foreground">
+                      {n.message}
+                    </span>
                     <span className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
-                      {!n.read_at && <span className="h-1.5 w-1.5 rounded-full bg-gold" />}
+                      {!n.read_at && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+                      )}
                       {timeAgo(n.created_at)}
                     </span>
                   </span>

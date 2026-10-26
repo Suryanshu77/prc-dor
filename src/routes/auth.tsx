@@ -27,7 +27,13 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Winger", "Striker"] as const;
+const POSITIONS = [
+  "Goalkeeper",
+  "Defender",
+  "Midfielder",
+  "Winger",
+  "Striker",
+] as const;
 
 function AuthPage() {
   const { user, loading } = useAuth();
@@ -48,7 +54,9 @@ function AuthPage() {
             <Trophy className="h-7 w-7" />
           </div>
           <h1 className="font-display text-3xl text-gold-gradient">PRC D'or</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Football community awards</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Football community awards
+          </p>
         </div>
 
         <div className="glass-strong rounded-2xl p-6 shadow-glow">
@@ -78,7 +86,10 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     setBusy(false);
     if (error) {
       toast.error(error.message);
@@ -91,7 +102,12 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     <form onSubmit={submit} className="mt-6 space-y-4">
       <div className="space-y-2">
         <Label>Email</Label>
-        <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
       </div>
       <div className="space-y-2">
         <Label>Password</Label>
@@ -102,7 +118,11 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
           onChange={(e) => setPassword(e.target.value)}
         />
       </div>
-      <Button type="submit" disabled={busy} className="w-full bg-gold-gradient text-background hover:opacity-90">
+      <Button
+        type="submit"
+        disabled={busy}
+        className="w-full bg-gold-gradient text-background hover:opacity-90"
+      >
         {busy ? "Signing in…" : "Sign in"}
       </Button>
     </form>
@@ -114,7 +134,13 @@ const signupSchema = z.object({
   nickname: z.string().trim().max(40).optional().or(z.literal("")),
   age: z.coerce.number().int().min(8).max(80),
   position: z.enum(POSITIONS),
-  jersey_number: z.coerce.number().int().min(1).max(99).optional().or(z.literal("")),
+  jersey_number: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(99)
+    .optional()
+    .or(z.literal("")),
   email: z.string().email().max(255),
   password: z.string().min(6).max(72),
   confirm: z.string(),
@@ -167,7 +193,10 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
         .from("avatars")
         .upload(path, photo, { upsert: true, contentType: photo.type });
       if (!upErr) {
-        await supabase.from("profiles").update({ profile_image: path }).eq("id", signed.user.id);
+        await supabase
+          .from("profiles")
+          .update({ profile_image: path })
+          .eq("id", signed.user.id);
       }
     }
 
@@ -184,7 +213,14 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Age" name="age" type="number" min={8} max={80} required />
-        <Field label="Jersey #" name="jersey_number" type="number" min={1} max={99} placeholder="optional" />
+        <Field
+          label="Jersey #"
+          name="jersey_number"
+          type="number"
+          min={1}
+          max={99}
+          placeholder="optional"
+        />
       </div>
       <div className="space-y-2">
         <Label>Position</Label>
@@ -214,7 +250,11 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
         <Field label="Password" name="password" type="password" required />
         <Field label="Confirm" name="confirm" type="password" required />
       </div>
-      <Button type="submit" disabled={busy} className="mt-2 w-full bg-gold-gradient text-background hover:opacity-90">
+      <Button
+        type="submit"
+        disabled={busy}
+        className="mt-2 w-full bg-gold-gradient text-background hover:opacity-90"
+      >
         {busy ? "Creating account…" : "Join PRC D'or"}
       </Button>
     </form>

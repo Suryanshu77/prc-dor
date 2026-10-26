@@ -15,6 +15,7 @@ import {
   Menu,
   ChevronDown,
   Pencil,
+  Award,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: Home },
   { to: "/players", label: "Players", icon: Users },
   { to: "/vote", label: "Vote", icon: Vote },
+  { to: "/vote-special", label: "Special Awards", icon: Award },
   { to: "/results", label: "Results", icon: Trophy },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/hall-of-fame", label: "Hall of Fame", icon: Crown },

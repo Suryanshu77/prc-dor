@@ -55,13 +55,17 @@ function VotePage() {
   const periodQ = useQuery({
     queryKey: ["active-period"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("voting_periods")
         .select("*")
         .eq("is_active", true)
         .order("year", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (error) {
+        console.error("[vote] failed to load active period", error);
+        toast.error("Couldn't load the voting period.", { id: "vote-period" });
+      }
       return data;
     },
   });
@@ -70,9 +74,15 @@ function VotePage() {
     queryKey: ["results-visible", periodQ.data?.id],
     queryFn: async () => {
       if (!periodQ.data?.id) return false;
-      const { data } = await supabase.rpc("is_period_results_visible", {
+      const { data, error } = await supabase.rpc("is_period_results_visible", {
         _period_id: periodQ.data!.id,
       });
+      if (error) {
+        console.error("[vote] failed to check results visibility", error);
+        toast.error("Couldn't check results visibility.", {
+          id: "vote-visibility",
+        });
+      }
       return data ?? false;
     },
     enabled: !!periodQ.data?.id,
@@ -83,12 +93,16 @@ function VotePage() {
   const playersQ = useQuery({
     queryKey: ["players-vote"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select(
           "id, full_name, nickname, position, jersey_number, profile_image",
         )
         .order("full_name");
+      if (error) {
+        console.error("[vote] failed to load players", error);
+        toast.error("Couldn't load players.", { id: "vote-players" });
+      }
       return (data ?? []) as Player[];
     },
   });
@@ -97,11 +111,17 @@ function VotePage() {
     queryKey: ["my-vote", user?.id, periodQ.data?.id],
     enabled: !!user && !!periodQ.data,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("votes")
-        .select("*")
+        .select("id")
         .eq("voter_id", user!.id)
         .eq("voting_period_id", periodQ.data!.id);
+      if (error) {
+        console.error("[vote] failed to load your ballot", error);
+        toast.error("Couldn't check whether you already voted.", {
+          id: "vote-my-ballot",
+        });
+      }
       return data ?? [];
     },
   });

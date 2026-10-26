@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { PROFILE_COLUMNS } from "@/lib/use-profile";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import trophyImg from "@/assets/trophy-hero.jpg";
 import {
@@ -13,6 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — PRC D'or" }] }),
@@ -26,11 +28,17 @@ function Dashboard() {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select(PROFILE_COLUMNS)
         .eq("id", user!.id)
         .maybeSingle();
+      if (error) {
+        console.error("[dashboard] failed to load profile", error);
+        toast.error("Couldn't load your profile.", {
+          id: "dashboard-profile",
+        });
+      }
       return data;
     },
   });
@@ -38,13 +46,19 @@ function Dashboard() {
   const periodQ = useQuery({
     queryKey: ["active-period"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("voting_periods")
         .select("*")
         .eq("is_active", true)
         .order("year", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (error) {
+        console.error("[dashboard] failed to load active period", error);
+        toast.error("Couldn't load the voting period.", {
+          id: "dashboard-period",
+        });
+      }
       return data;
     },
   });
@@ -58,6 +72,16 @@ function Dashboard() {
         supabase.rpc("get_period_vote_stats", { _period_id: periodQ.data!.id }),
         supabase.rpc("has_voted_in_period", { _period_id: periodQ.data!.id }),
       ]);
+      if (players.error || stats.error || mine.error) {
+        console.error("[dashboard] failed to load stats", {
+          players: players.error,
+          stats: stats.error,
+          hasVoted: mine.error,
+        });
+        toast.error("Couldn't load voting stats.", {
+          id: "dashboard-stats",
+        });
+      }
       const row = (stats.data ?? [])[0] as
         { vote_count: number; voter_count: number } | undefined;
       return {
@@ -73,9 +97,15 @@ function Dashboard() {
     queryKey: ["results-visible", periodQ.data?.id],
     queryFn: async () => {
       if (!periodQ.data?.id) return false;
-      const { data } = await supabase.rpc("is_period_results_visible", {
+      const { data, error } = await supabase.rpc("is_period_results_visible", {
         _period_id: periodQ.data!.id,
       });
+      if (error) {
+        console.error("[dashboard] failed to check results visibility", error);
+        toast.error("Couldn't check results visibility.", {
+          id: "dashboard-visibility",
+        });
+      }
       return data ?? false;
     },
     enabled: !!periodQ.data?.id,

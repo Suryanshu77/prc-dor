@@ -44,8 +44,10 @@
   --font-display: "Cinzel", "Playfair Display", serif;
   --font-sans: "Inter", system-ui, sans-serif;
 
-  --shadow-gold: 0 8px 40px -8px color-mix(in oklab, var(--gold) 35%, transparent);
-  --shadow-glow: 0 0 60px -10px color-mix(in oklab, var(--gold) 50%, transparent);
+  --shadow-gold: 0 8px 40px -8px
+    color-mix(in oklab, var(--gold) 35%, transparent);
+  --shadow-glow: 0 0 60px -10px
+    color-mix(in oklab, var(--gold) 50%, transparent);
 }
 
 :root {
@@ -79,8 +81,8 @@
   --ring: oklch(0.82 0.14 85);
 
   --gold: oklch(0.82 0.14 85);
-  --gold-soft: oklch(0.88 0.10 88);
-  --gold-dim: oklch(0.55 0.10 80);
+  --gold-soft: oklch(0.88 0.1 88);
+  --gold-dim: oklch(0.55 0.1 80);
   --bronze: oklch(0.65 0.12 50);
   --silver: oklch(0.82 0.02 250);
 
@@ -92,24 +94,47 @@
 }
 
 @layer base {
-  html, body {
-    background: radial-gradient(ellipse at top, oklch(0.18 0.02 80) 0%, oklch(0.10 0.005 80) 60%) fixed;
+  html,
+  body {
+    background: radial-gradient(
+        ellipse at top,
+        oklch(0.18 0.02 80) 0%,
+        oklch(0.1 0.005 80) 60%
+      )
+      fixed;
     color: var(--color-foreground);
     font-family: var(--font-sans);
     min-height: 100%;
   }
-  * { border-color: var(--color-border); }
-  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: 0.02em; }
+  * {
+    border-color: var(--color-border);
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+  }
 }
 
 @utility text-gold {
   color: var(--gold);
 }
 @utility bg-gold-gradient {
-  background: linear-gradient(135deg, oklch(0.88 0.10 88) 0%, oklch(0.72 0.16 80) 50%, oklch(0.55 0.12 70) 100%);
+  background: linear-gradient(
+    135deg,
+    oklch(0.88 0.1 88) 0%,
+    oklch(0.72 0.16 80) 50%,
+    oklch(0.55 0.12 70) 100%
+  );
 }
 @utility text-gold-gradient {
-  background: linear-gradient(135deg, oklch(0.92 0.08 90) 0%, oklch(0.78 0.16 82) 100%);
+  background: linear-gradient(
+    135deg,
+    oklch(0.92 0.08 90) 0%,
+    oklch(0.78 0.16 82) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -128,31 +153,62 @@
   border: 1px solid color-mix(in oklab, var(--gold) 25%, transparent);
 }
 @utility shimmer {
-  background: linear-gradient(110deg, transparent 40%, color-mix(in oklab, var(--gold) 40%, transparent) 50%, transparent 60%);
+  background: linear-gradient(
+    110deg,
+    transparent 40%,
+    color-mix(in oklab, var(--gold) 40%, transparent) 50%,
+    transparent 60%
+  );
   background-size: 200% 100%;
   animation: shimmer 2.5s linear infinite;
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 @keyframes float {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes gold-pulse {
-  0%,100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--gold) 40%, transparent); }
-  50% { box-shadow: 0 0 0 12px transparent; }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--gold) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 12px transparent;
+  }
 }
 
-@utility animate-float { animation: float 4s ease-in-out infinite; }
-@utility animate-fade-up { animation: fade-up 0.5s ease-out both; }
-@utility animate-gold-pulse { animation: gold-pulse 2.5s ease-out infinite; }
+@utility animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+@utility animate-fade-up {
+  animation: fade-up 0.5s ease-out both;
+}
+@utility animate-gold-pulse {
+  animation: gold-pulse 2.5s ease-out infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .prc-dor-winner-popup,

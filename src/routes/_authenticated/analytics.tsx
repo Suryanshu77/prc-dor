@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   ResponsiveContainer,
   BarChart,
@@ -32,7 +33,13 @@ function AnalyticsPage() {
   const resultsQ = useQuery({
     queryKey: ["active-period-analytics"],
     queryFn: async () => {
-      const { data } = await supabase.rpc("get_active_period_analytics");
+      const { data, error } = await supabase.rpc("get_active_period_analytics");
+      if (error) {
+        console.error("[analytics] failed to load results", error);
+        toast.error("Couldn't load analytics results.", {
+          id: "analytics-results",
+        });
+      }
       return data ?? [];
     },
   });
@@ -40,7 +47,13 @@ function AnalyticsPage() {
   const playersQ = useQuery({
     queryKey: ["all-players"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, position");
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, position");
+      if (error) {
+        console.error("[analytics] failed to load players", error);
+        toast.error("Couldn't load players.", { id: "analytics-players" });
+      }
       return data ?? [];
     },
   });
@@ -48,7 +61,13 @@ function AnalyticsPage() {
   const votersQ = useQuery({
     queryKey: ["voters"],
     queryFn: async () => {
-      const { data } = await supabase.rpc("get_period_vote_stats");
+      const { data, error } = await supabase.rpc("get_period_vote_stats");
+      if (error) {
+        console.error("[analytics] failed to load participation stats", error);
+        toast.error("Couldn't load participation stats.", {
+          id: "analytics-voters",
+        });
+      }
       const row = (data ?? [])[0] as
         { vote_count: number; voter_count: number } | undefined;
       return row?.voter_count ?? 0;

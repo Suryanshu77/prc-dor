@@ -26,9 +26,15 @@ function HallOfFame() {
   return (
     <div className="space-y-8">
       <header className="text-center">
-        <div className="text-xs uppercase tracking-[0.2em] text-gold">Hall of Fame</div>
-        <h1 className="font-display text-5xl text-gold-gradient">Legends of PRC</h1>
-        <p className="mt-2 text-muted-foreground">Every PRC D'or winner, immortalised.</p>
+        <div className="text-xs uppercase tracking-[0.2em] text-gold">
+          Hall of Fame
+        </div>
+        <h1 className="font-display text-5xl text-gold-gradient">
+          Legends of PRC
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          Every PRC D'or winner, immortalised.
+        </p>
       </header>
 
       {entries.length === 0 ? (
@@ -38,7 +44,11 @@ function HallOfFame() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {entries.map((e) => {
-            const w: any = e.winner;
+            const w = e.winner as {
+              profile_image: string | null;
+              full_name: string;
+              position: string | null;
+            } | null;
             const img = w?.profile_image ?? e.winner_image;
             return (
               <div
@@ -47,16 +57,33 @@ function HallOfFame() {
               >
                 <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[var(--gold)] opacity-20 blur-3xl" />
                 <Crown className="mx-auto h-8 w-8 text-gold animate-float" />
-                <div className="mt-3 font-display text-4xl text-gold-gradient">{e.year}</div>
+                <div className="mt-3 font-display text-4xl text-gold-gradient">
+                  {e.year}
+                </div>
                 <div className="mt-5 flex flex-col items-center">
-                  <PlayerAvatar path={img} name={e.winner_name} className="h-24 w-24" ring />
-                  <div className="mt-3 font-display text-xl">{e.winner_name}</div>
-                  {w?.position && <div className="text-xs text-muted-foreground">{w.position}</div>}
+                  <PlayerAvatar
+                    path={img}
+                    name={e.winner_name}
+                    className="h-24 w-24"
+                    ring
+                  />
+                  <div className="mt-3 font-display text-xl">
+                    {e.winner_name}
+                  </div>
+                  {w?.position && (
+                    <div className="text-xs text-muted-foreground">
+                      {w.position}
+                    </div>
+                  )}
                   {e.total_points && (
-                    <div className="mt-2 text-sm text-gold">{e.total_points} points</div>
+                    <div className="mt-2 text-sm text-gold">
+                      {e.total_points} points
+                    </div>
                   )}
                   {e.notes && (
-                    <p className="mt-3 max-w-xs text-xs italic text-muted-foreground">{e.notes}</p>
+                    <p className="mt-3 max-w-xs text-xs italic text-muted-foreground">
+                      {e.notes}
+                    </p>
                   )}
                 </div>
               </div>

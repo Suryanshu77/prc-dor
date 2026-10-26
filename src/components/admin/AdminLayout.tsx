@@ -9,19 +9,13 @@ interface Props {
 export default function AdminLayout({ children }: Props) {
   return (
     <div className="min-h-screen bg-background flex">
-
       <AdminSidebar />
 
       <div className="flex-1 flex flex-col">
-
         <AdminHeader />
 
-        <main className="p-8">
-          {children}
-        </main>
-
+        <main className="p-8">{children}</main>
       </div>
-
     </div>
   );
 }

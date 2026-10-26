@@ -18,7 +18,14 @@ export const Route = createFileRoute("/_authenticated/players")({
   component: PlayersPage,
 });
 
-const POSITIONS = ["All", "Goalkeeper", "Defender", "Midfielder", "Winger", "Striker"];
+const POSITIONS = [
+  "All",
+  "Goalkeeper",
+  "Defender",
+  "Midfielder",
+  "Winger",
+  "Striker",
+];
 
 function PlayersPage() {
   const [q, setQ] = useState("");
@@ -29,7 +36,9 @@ function PlayersPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, nickname, position, jersey_number, profile_image")
+        .select(
+          "id, full_name, nickname, position, jersey_number, profile_image",
+        )
         .order("full_name");
       return data ?? [];
     },
@@ -47,7 +56,9 @@ function PlayersPage() {
     <div className="space-y-6">
       <header>
         <h1 className="font-display text-3xl">The Squad</h1>
-        <p className="text-muted-foreground">All registered PRC D'or contenders.</p>
+        <p className="text-muted-foreground">
+          All registered PRC D'or contenders.
+        </p>
       </header>
 
       <div className="flex flex-wrap gap-3">
@@ -83,11 +94,18 @@ function PlayersPage() {
             className="group glass rounded-2xl p-5 text-center transition hover:shadow-gold hover:-translate-y-1"
           >
             <div className="mx-auto mb-4 inline-block">
-              <PlayerAvatar path={p.profile_image} name={p.full_name} className="h-24 w-24" ring />
+              <PlayerAvatar
+                path={p.profile_image}
+                name={p.full_name}
+                className="h-24 w-24"
+                ring
+              />
             </div>
             <div className="font-display text-lg">{p.full_name}</div>
             {p.nickname && (
-              <div className="text-xs text-muted-foreground">"{p.nickname}"</div>
+              <div className="text-xs text-muted-foreground">
+                "{p.nickname}"
+              </div>
             )}
             <div className="mt-3 flex items-center justify-center gap-2 text-xs">
               <span className="rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
