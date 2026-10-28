@@ -77,15 +77,29 @@ ORDER BY vp.year, v.voter_id, v.rank_position;
 -- 6. Duplicate-rank and duplicate-player checks (unique constraints should
 --    already guarantee zero rows here; confirm nothing was added out-of-band)
 -- ---------------------------------------------------------------------------
-SELECT 'dup_rank' AS issue, voter_id, voting_period_id, rank_position, COUNT(*) AS n
+SELECT
+    'dup_rank' AS issue,
+    voter_id::text AS voter_id,
+    voting_period_id::text AS voting_period_id,
+    rank_position::text AS duplicate_value,
+    COUNT(*) AS duplicate_count
 FROM public.votes
 GROUP BY voter_id, voting_period_id, rank_position
 HAVING COUNT(*) > 1
+
 UNION ALL
-SELECT 'dup_player', voter_id, voting_period_id, ranked_player_id, COUNT(*)
+
+SELECT
+    'dup_player' AS issue,
+    voter_id::text AS voter_id,
+    voting_period_id::text AS voting_period_id,
+    ranked_player_id::text AS duplicate_value,
+    COUNT(*) AS duplicate_count
 FROM public.votes
 GROUP BY voter_id, voting_period_id, ranked_player_id
-HAVING COUNT(*) > 1;
+HAVING COUNT(*) > 1
+
+ORDER BY issue, voter_id;
 
 -- ---------------------------------------------------------------------------
 -- 7. Checksum for post-migration comparison (any schema/data-affecting mistake

@@ -199,22 +199,27 @@ function VotePage() {
   }
 
   async function submit() {
+    if (submitting) return;
     if (ranking.length !== 10) {
       toast.error("Rank exactly 10 players");
       return;
     }
     setSubmitting(true);
-    const rows = ranking.map((p, i) => ({
-      voter_id: user!.id,
-      ranked_player_id: p.id,
-      rank_position: i + 1,
-      points: POINTS_BY_RANK[i + 1],
-      voting_period_id: periodQ.data!.id,
-    }));
-    const { error } = await supabase.from("votes").insert(rows);
+    // Server-side submission: the voter id, ranks and points are all derived
+    // by submit_main_ballot (auth.uid(), ordinality, ballot_points_for_rank).
+    // The client only sends the ordered player ids.
+    const { error } = await supabase.rpc("submit_main_ballot", {
+      _period_id: periodQ.data!.id,
+      _player_ids: ranking.map((p) => p.id),
+    });
     setSubmitting(false);
     if (error) {
-      toast.error(error.message);
+      console.error("[vote] ballot submission failed", error);
+      toast.error(ballotErrorMessage(error.message), { id: "vote-submit" });
+      if (/already submitted/i.test(error.message ?? "")) {
+        qc.invalidateQueries({ queryKey: ["my-vote"] });
+        setConfirmOpen(false);
+      }
       return;
     }
     toast.success("Vote submitted — thank you!");
@@ -370,6 +375,31 @@ function VotePage() {
       </Dialog>
     </div>
   );
+}
+
+function ballotErrorMessage(message: string | undefined): string {
+  const m = message ?? "";
+  if (/already submitted/i.test(m))
+    return "You've already submitted your ballot for this voting period.";
+  if (/not open|not active/i.test(m))
+    return "Voting is closed right now — your ballot was not recorded.";
+  if (/does not exist/i.test(m))
+    return "That voting period is no longer available.";
+  if (/exactly 10/i.test(m))
+    return "Rank exactly 10 players before submitting.";
+  if (/duplicate player/i.test(m))
+    return "Each player can only appear once in your ranking.";
+  if (/unknown player/i.test(m))
+    return "One of the players in your ranking is no longer available. Refresh the page and try again.";
+  if (/cannot vote for yourself/i.test(m))
+    return "You can't vote for yourself.";
+  if (/not authenticated/i.test(m))
+    return "Your session has expired — please sign in again.";
+  if (/permission denied/i.test(m))
+    return "You don't have permission to submit a ballot.";
+  return m
+    ? `Couldn't submit your ballot: ${m}`
+    : "Couldn't submit your ballot.";
 }
 
 function SortableRow({

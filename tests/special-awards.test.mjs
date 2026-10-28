@@ -37,12 +37,25 @@ const stripped = sql.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
 // ==========================================================================
 // Static guards
 // ==========================================================================
-test("migration file name sorts last among migrations", () => {
+test("migration file name follows the convention and keeps its position in history", () => {
   assert.match(path.basename(MIGRATION), /^\d{14}_special_awards\.sql$/);
   const files = readdirSync(path.join(ROOT, "src/supabase/migrations"))
     .filter((f) => f.endsWith(".sql"))
     .sort();
-  assert.equal(files[files.length - 1], path.basename(MIGRATION));
+  // Ordering is pinned relatively: newer migrations (e.g.
+  // 20261027120000_secure_main_ballot.sql) may follow this one, so the
+  // original "this file is last" assertion was relaxed when they landed.
+  assert.ok(
+    files.indexOf("20261023120000_reconcile_permissions.sql") <
+      files.indexOf(path.basename(MIGRATION)),
+    "special awards must apply after the permission reconciliation",
+  );
+  assert.ok(
+    files.indexOf(path.basename(MIGRATION)) <
+      files.indexOf("20261027120000_secure_main_ballot.sql"),
+    "the secure main-ballot cutover must apply after special awards",
+  );
+  assert.match(files[files.length - 1], /^\d{14}_[a-z0-9_]+\.sql$/);
 });
 
 test("all three tables are created with per-edition uniqueness scoring and cascade cleanup", () => {
@@ -793,9 +806,21 @@ test("default-ACL simulation is active (negative control) and special tables hol
          has_table_privilege('anon', 'public.${t}', 'TRUNCATE') AS n_trunc`,
     );
     const row = r.rows[0];
-    assert.equal(row.a_ins, false, `${t}: authenticated INSERT must be revoked`);
-    assert.equal(row.a_upd, false, `${t}: authenticated UPDATE must be revoked`);
-    assert.equal(row.a_del, false, `${t}: authenticated DELETE must be revoked`);
+    assert.equal(
+      row.a_ins,
+      false,
+      `${t}: authenticated INSERT must be revoked`,
+    );
+    assert.equal(
+      row.a_upd,
+      false,
+      `${t}: authenticated UPDATE must be revoked`,
+    );
+    assert.equal(
+      row.a_del,
+      false,
+      `${t}: authenticated DELETE must be revoked`,
+    );
     assert.equal(
       row.a_trunc,
       false,
@@ -892,11 +917,7 @@ test("function EXECUTE matrix: RPCs open to authenticated, internal helpers clos
   for (const name of internals) {
     const row = byName.get(name);
     assert.ok(row, `missing helper ${name} in pg_proc`);
-    assert.equal(
-      row.anon_exec,
-      false,
-      `${name}: anon EXECUTE must be revoked`,
-    );
+    assert.equal(row.anon_exec, false, `${name}: anon EXECUTE must be revoked`);
     assert.equal(
       row.auth_exec,
       false,

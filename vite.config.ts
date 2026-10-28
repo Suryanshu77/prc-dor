@@ -50,7 +50,7 @@ export default defineConfig(({ command, mode }) => {
               define: { "process.env.NODE_ENV": JSON.stringify("development") },
             },
           },
-          esbuild: { keepNames: true },
+          esbuild: { keepNames: true } as import("vite").ESBuildOptions,
         }
       : {}),
     // Match the build's CSS pipeline in dev. Vite uses PostCSS in dev and only

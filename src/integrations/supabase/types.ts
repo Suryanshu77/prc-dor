@@ -572,6 +572,10 @@ export type Database = {
         Args: { _award_id: string };
         Returns: boolean;
       };
+      submit_main_ballot: {
+        Args: { _period_id: string; _player_ids: string[] };
+        Returns: undefined;
+      };
       submit_special_ballot: {
         Args: { _award_id: string; _ranked_candidate_ids: string[] };
         Returns: undefined;
