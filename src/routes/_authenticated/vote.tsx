@@ -242,6 +242,18 @@ function VotePage() {
         </p>
       </header>
 
+      {/* Official criteria poster — shown before the ranking interface */}
+      <section className="glass-strong rounded-2xl p-5">
+        <h2 className="font-display text-xl text-gold">
+          Vote According to the Official PRC D'OR Criteria
+        </h2>
+        <img
+          src="/images/prc-dor-criteria.jpeg"
+          alt="Official PRC D'OR winner criteria"
+          className="mx-auto mt-4 block h-auto w-full max-w-2xl rounded-xl border border-[var(--gold)]/30"
+        />
+      </section>
+
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         {/* Ranking */}
         <div className="glass-strong rounded-2xl p-5">
@@ -334,33 +346,42 @@ function VotePage() {
       </div>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="glass-strong">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-display">
-              <AlertTriangle className="h-5 w-5 text-gold" /> Confirm your vote
-            </DialogTitle>
+        <DialogContent className="glass-strong flex max-h-[90vh] flex-col overflow-hidden supports-[height:1dvh]:max-h-[90dvh]">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 font-display">
+                <AlertTriangle className="h-5 w-5 text-gold" /> Confirm your
+                vote
+              </DialogTitle>
+            </DialogHeader>
+            <img
+              src="/images/prc-dor-criteria.jpeg"
+              alt="Official PRC D'OR winner criteria"
+              className="mx-auto block max-h-[45vh] w-auto max-w-full rounded-lg border border-[var(--gold)]/30"
+            />
             <DialogDescription>
-              Are you sure? Votes cannot be changed after submission.
+              Have you ranked your players according to the official PRC D'OR
+              criteria shown above?
             </DialogDescription>
-          </DialogHeader>
-          <ol className="max-h-72 space-y-1 overflow-y-auto text-sm">
-            {ranking.map((p, i) => (
-              <li
-                key={p.id}
-                className="flex items-center justify-between rounded-md bg-secondary/40 px-3 py-1.5"
-              >
-                <span>
-                  <span className="text-gold">#{i + 1}</span> {p.full_name}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {POINTS_BY_RANK[i + 1]} pts
-                </span>
-              </li>
-            ))}
-          </ol>
-          <DialogFooter>
+            <ol className="space-y-1 text-sm">
+              {ranking.map((p, i) => (
+                <li
+                  key={p.id}
+                  className="flex items-center justify-between rounded-md bg-secondary/40 px-3 py-1.5"
+                >
+                  <span>
+                    <span className="text-gold">#{i + 1}</span> {p.full_name}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {POINTS_BY_RANK[i + 1]} pts
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <DialogFooter className="shrink-0 gap-2 pt-2 sm:space-x-2">
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              Go back
+              Go Back and Review
             </Button>
             <Button
               onClick={submit}
@@ -368,7 +389,7 @@ function VotePage() {
               className="bg-gold-gradient text-background hover:opacity-90"
             >
               <Check className="mr-1 h-4 w-4" />{" "}
-              {submitting ? "Submitting…" : "Confirm vote"}
+              {submitting ? "Submitting…" : "Yes, Submit My Vote"}
             </Button>
           </DialogFooter>
         </DialogContent>
