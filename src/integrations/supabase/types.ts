@@ -558,7 +558,11 @@ export type Database = {
         }[];
       };
       admin_get_ballot: {
-        Args: { _period_id: string; _voter_id: string };
+        Args: {
+          _period_id: string;
+          _voter_id: string;
+          _include_removed?: boolean;
+        };
         Returns: {
           rank_position: number;
           player_id: string;
@@ -570,6 +574,8 @@ export type Database = {
           profile_image: string | null;
           points: number;
           total_points: number;
+          removed_at: string | null;
+          removal_reason: string | null;
         }[];
       };
       admin_get_ranking_preview: {
@@ -640,6 +646,10 @@ export type Database = {
       admin_reset_special_votes: {
         Args: { _award_id: string };
         Returns: undefined;
+      };
+      admin_reset_votes: {
+        Args: { _period_id: string; _reason?: string };
+        Returns: number;
       };
       admin_restore_voter_ballot: {
         Args: { _period_id: string; _voter_id: string };

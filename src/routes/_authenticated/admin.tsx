@@ -125,13 +125,13 @@ function PeriodSection() {
   }
 
   async function resetVotes(id: string) {
-    const { error } = await supabase
-      .from("votes")
-      .delete()
-      .eq("voting_period_id", id);
+    const { data, error } = await supabase.rpc("admin_reset_votes", {
+      _period_id: id,
+      _reason: "Votes reset from the admin dashboard",
+    });
     if (error) toast.error(error.message);
     else {
-      toast.success("Votes reset");
+      toast.success(`Votes reset (${data} ballot rows removed).`);
       qc.invalidateQueries();
     }
   }
@@ -155,6 +155,7 @@ function PeriodSection() {
       .update({
         winner_id: winner.id,
         is_active: false,
+        results_visible: true,
         results_published: true,
       })
       .eq("id", periodId);
@@ -253,7 +254,10 @@ function PeriodSection() {
               Declare winner
             </Button>
 
-            <ResetButton onConfirm={() => resetVotes(p.id)} />
+            <ResetButton
+              onConfirm={() => resetVotes(p.id)}
+              detail="This permanently deletes every vote for this edition, clears any approved final ranking, and is recorded in the audit log. Players can vote again."
+            />
           </div>
         ))}
       </div>
@@ -264,9 +268,11 @@ function PeriodSection() {
 function ResetButton({
   onConfirm,
   disabled,
+  detail,
 }: {
   onConfirm: () => void;
   disabled?: boolean;
+  detail?: string;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -284,8 +290,8 @@ function ResetButton({
           <AlertDialogHeader>
             <AlertDialogTitle>Reset all votes?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes every vote for this period. Players can
-              vote again.
+              {detail ??
+                "This permanently deletes every vote for this period. Players can vote again."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

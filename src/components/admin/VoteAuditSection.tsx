@@ -74,6 +74,8 @@ type BallotRow = {
   profile_image: string | null;
   points: number;
   total_points: number;
+  removed_at?: string | null;
+  removal_reason?: string | null;
 };
 
 type RemovalPreview = {
@@ -192,8 +194,9 @@ export default function VoteAuditSection() {
 
   // Hooks cannot be called conditionally, so the ballot reads the UI can
   // trigger (inspect dialog, compare left/right, removal preview) are separate
-  // queries sharing one cache key each.
-  const inspectBallotQ = useBallotQuery(periodId, inspectId);
+  // queries sharing one cache key each. The inspect dialog includes removed
+  // rows so a removed ballot stays reviewable.
+  const inspectBallotQ = useBallotQuery(periodId, inspectId, true);
   const compareBallotAQ = useBallotQuery(periodId, compareA || null);
   const compareBallotBQ = useBallotQuery(periodId, compareB || null);
 
@@ -221,6 +224,13 @@ export default function VoteAuditSection() {
   const removalBallotQ = useBallotQuery(
     periodId,
     removeTarget?.voter_id ?? null,
+  );
+
+  // The edition being moderated, so the confirmation dialog can warn when its
+  // results are already public (M1).
+  const removalEdition = useMemo(
+    () => periods.find((p) => p.id === periodId),
+    [periods, periodId],
   );
 
   async function confirmRemoval() {
@@ -495,6 +505,18 @@ export default function VoteAuditSection() {
                   </span>
                   .
                 </p>
+                {(removalEdition?.results_visible ||
+                  removalEdition?.results_published) && (
+                  <div className="rounded-lg border border-amber-400/40 bg-amber-500/10 p-3 text-amber-200">
+                    <span className="font-semibold text-amber-100">
+                      Published edition:
+                    </span>{" "}
+                    results for {removalEdition?.title ?? "this edition"} are
+                    already visible to players. Removing this ballot will
+                    immediately change the public standings and the stored final
+                    order.
+                  </div>
+                )}
                 <div className="rounded-lg border border-border/60 bg-secondary/30 p-3">
                   <div className="mb-1 text-xs uppercase tracking-[0.15em] text-muted-foreground">
                     Records about to be affected
@@ -621,14 +643,19 @@ export default function VoteAuditSection() {
 }
 
 /** One ballot read, shared by the inspect dialog and the comparison panel. */
-function useBallotQuery(periodId: string | undefined, voterId: string | null) {
+function useBallotQuery(
+  periodId: string | undefined,
+  voterId: string | null,
+  includeRemoved = false,
+) {
   return useQuery({
-    queryKey: ["audit-ballot", periodId, voterId],
+    queryKey: ["audit-ballot", periodId, voterId, includeRemoved],
     enabled: !!periodId && !!voterId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("admin_get_ballot", {
         _period_id: periodId!,
         _voter_id: voterId!,
+        _include_removed: includeRemoved,
       });
       if (error) {
         console.error("[audit] failed to load the ballot", error);
@@ -664,7 +691,14 @@ function BallotTable({
       </thead>
       <tbody>
         {rows.map((r) => (
-          <tr key={r.player_id} className="border-t border-border/30">
+          <tr
+            key={r.player_id}
+            className={
+              r.removed_at
+                ? "border-t border-border/30 opacity-60"
+                : "border-t border-border/30"
+            }
+          >
             <td className="px-2 py-2 font-display text-gold">
               {r.rank_position}
             </td>
@@ -681,7 +715,17 @@ function BallotTable({
                     "{r.nickname}"
                   </span>
                 )}
+                {r.removed_at && (
+                  <span className="rounded-full border border-destructive/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-destructive">
+                    removed
+                  </span>
+                )}
               </div>
+              {r.removed_at && r.removal_reason && (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Removal reason: {r.removal_reason}
+                </div>
+              )}
             </td>
             <td className="px-2 py-2 text-right font-display text-gold">
               {r.points}
@@ -694,7 +738,9 @@ function BallotTable({
           </td>
           <td></td>
           <td className="px-2 py-2 text-right font-display text-base text-gold-gradient">
-            {rows.reduce((sum, r) => sum + r.points, 0)}
+            {rows
+              .filter((r) => !r.removed_at)
+              .reduce((sum, r) => sum + r.points, 0)}
           </td>
         </tr>
       </tbody>
