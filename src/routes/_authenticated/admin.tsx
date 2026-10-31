@@ -1,4 +1,6 @@
 import AdminLayout from "@/components/admin/AdminLayout";
+import VoteAuditSection from "@/components/admin/VoteAuditSection";
+import FinalRankingSection from "@/components/admin/FinalRankingSection";
 import { deletePlayer } from "@/lib/admin-delete-player.server";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -66,6 +68,10 @@ function AdminPage() {
         </header>
 
         <PeriodSection />
+
+        <VoteAuditSection />
+
+        <FinalRankingSection />
 
         <SpecialAwardsSection />
 

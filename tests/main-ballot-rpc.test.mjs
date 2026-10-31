@@ -28,6 +28,12 @@ import { PGlite } from "@electric-sql/pglite";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATIONS_DIR = path.join(ROOT, "src/supabase/migrations");
 const MIGRATION_NAME = "20261027120000_secure_main_ballot.sql";
+// The vote-audit / final-ranking migration lands after this cutover. It is
+// applied in the loop below (i.e. before MIGRATION_NAME in this harness, which
+// only skips the file under test) and must never depend on anything this file
+// creates — see the audit test for its own full-chain coverage.
+const AUDIT_MIGRATION_NAME =
+  "20261030120000_admin_vote_audit_and_final_ranking.sql";
 const MIGRATION = path.join(MIGRATIONS_DIR, MIGRATION_NAME);
 const STUB = path.join(ROOT, "tests/sql/00-stub-supabase-env.sql");
 const STORAGE_STUB = path.join(ROOT, "tests/sql/05-stub-supabase-storage.sql");
@@ -74,9 +80,8 @@ function loadMigration(file) {
 // ==========================================================================
 // Static guards
 // ==========================================================================
-test("migration follows the naming convention and sorts last", () => {
+test("migration follows the naming convention and keeps its place in history", () => {
   assert.match(MIGRATION_NAME, /^\d{14}_[a-z0-9_]+\.sql$/);
-  assert.equal(FILES[FILES.length - 1], MIGRATION_NAME);
   assert.ok(
     FILES.indexOf("20261023120000_reconcile_permissions.sql") <
       FILES.indexOf("20261025120000_special_awards.sql"),
@@ -86,6 +91,13 @@ test("migration follows the naming convention and sorts last", () => {
       FILES.indexOf(MIGRATION_NAME),
     "the cutover must be applied after every earlier migration",
   );
+  // Ordering is pinned relatively (the same relaxation special-awards applies):
+  // newer migrations may follow this one, they must not precede it.
+  assert.ok(
+    FILES.indexOf(MIGRATION_NAME) < FILES.indexOf(AUDIT_MIGRATION_NAME),
+    "the vote-audit migration must apply after the main-ballot cutover",
+  );
+  assert.match(AUDIT_MIGRATION_NAME, /^\d{14}_[a-z0-9_]+\.sql$/);
 });
 
 test("submit_main_ballot: two args only, SECURITY DEFINER, hardened search_path", () => {

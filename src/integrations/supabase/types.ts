@@ -14,6 +14,42 @@ export type Database = {
   };
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string;
+          admin_user_id: string | null;
+          created_at: string;
+          details: Json;
+          id: string;
+          reason: string | null;
+          records_affected: number;
+          target_user_id: string | null;
+          voting_period_id: string | null;
+        };
+        Insert: {
+          action: string;
+          admin_user_id?: string | null;
+          created_at?: string;
+          details?: Json;
+          id?: string;
+          reason?: string | null;
+          records_affected?: number;
+          target_user_id?: string | null;
+          voting_period_id?: string | null;
+        };
+        Update: {
+          action?: string;
+          admin_user_id?: string | null;
+          created_at?: string;
+          details?: Json;
+          id?: string;
+          reason?: string | null;
+          records_affected?: number;
+          target_user_id?: string | null;
+          voting_period_id?: string | null;
+        };
+        Relationships: [];
+      };
       admin_notifications: {
         Row: {
           created_at: string;
@@ -43,6 +79,61 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [];
+      };
+      final_rankings: {
+        Row: {
+          approved_at: string;
+          approved_by: string | null;
+          calculated_position: number | null;
+          created_at: string;
+          final_position: number;
+          id: string;
+          player_id: string;
+          voting_period_id: string;
+        };
+        Insert: {
+          approved_at?: string;
+          approved_by?: string | null;
+          calculated_position?: number | null;
+          created_at?: string;
+          final_position: number;
+          id?: string;
+          player_id: string;
+          voting_period_id: string;
+        };
+        Update: {
+          approved_at?: string;
+          approved_by?: string | null;
+          calculated_position?: number | null;
+          created_at?: string;
+          final_position?: number;
+          id?: string;
+          player_id?: string;
+          voting_period_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "final_rankings_player_id_fkey";
+            columns: ["player_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "final_rankings_player_id_fkey";
+            columns: ["player_id"];
+            isOneToOne: false;
+            referencedRelation: "player_results";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "final_rankings_voting_period_id_fkey";
+            columns: ["voting_period_id"];
+            isOneToOne: false;
+            referencedRelation: "voting_periods";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       hall_of_fame: {
         Row: {
@@ -302,6 +393,9 @@ export type Database = {
           points: number;
           rank_position: number;
           ranked_player_id: string;
+          removal_reason: string | null;
+          removed_at: string | null;
+          removed_by: string | null;
           voter_id: string;
           voting_period_id: string;
         };
@@ -311,6 +405,9 @@ export type Database = {
           points: number;
           rank_position: number;
           ranked_player_id: string;
+          removal_reason?: string | null;
+          removed_at?: string | null;
+          removed_by?: string | null;
           voter_id: string;
           voting_period_id: string;
         };
@@ -320,6 +417,9 @@ export type Database = {
           points?: number;
           rank_position?: number;
           ranked_player_id?: string;
+          removal_reason?: string | null;
+          removed_at?: string | null;
+          removed_by?: string | null;
           voter_id?: string;
           voting_period_id?: string;
         };
@@ -457,6 +557,40 @@ export type Database = {
           period_id: string;
         }[];
       };
+      admin_get_ballot: {
+        Args: { _period_id: string; _voter_id: string };
+        Returns: {
+          rank_position: number;
+          player_id: string;
+          full_name: string | null;
+          nickname: string | null;
+          player_position:
+            Database["public"]["Enums"]["player_position"] | null;
+          jersey_number: number | null;
+          profile_image: string | null;
+          points: number;
+          total_points: number;
+        }[];
+      };
+      admin_get_ranking_preview: {
+        Args: { _period_id: string };
+        Returns: {
+          player_id: string;
+          full_name: string | null;
+          nickname: string | null;
+          player_position:
+            Database["public"]["Enums"]["player_position"] | null;
+          jersey_number: number | null;
+          profile_image: string | null;
+          total_points: number;
+          first_place_votes: number;
+          total_rankings: number;
+          calculated_rank: number;
+          calculated_row: number;
+          final_position: number | null;
+          approved_at: string | null;
+        }[];
+      };
       admin_list_player_emails: {
         Args: never;
         Returns: {
@@ -464,17 +598,56 @@ export type Database = {
           id: string;
         }[];
       };
+      admin_list_voters: {
+        Args: { _period_id: string };
+        Returns: {
+          voter_id: string;
+          display_name: string;
+          email: string | null;
+          submitted_at: string;
+          vote_count: number;
+          total_points: number;
+          ballot_rows: number;
+          removed_at: string | null;
+          removal_reason: string | null;
+        }[];
+      };
       admin_nominate_player: {
         Args: { _award_id: string; _player_id: string };
         Returns: string;
+      };
+      admin_preview_voter_removal: {
+        Args: { _period_id: string; _voter_id: string };
+        Returns: {
+          vote_rows: number;
+          total_points: number;
+          special_vote_rows: number;
+          already_removed: boolean;
+        }[];
       };
       admin_remove_nominee: {
         Args: { _award_id: string; _player_id: string };
         Returns: undefined;
       };
+      admin_remove_voter_ballot: {
+        Args: { _period_id: string; _voter_id: string; _reason: string };
+        Returns: number;
+      };
+      admin_reset_final_ranking: {
+        Args: { _period_id: string };
+        Returns: number;
+      };
       admin_reset_special_votes: {
         Args: { _award_id: string };
         Returns: undefined;
+      };
+      admin_restore_voter_ballot: {
+        Args: { _period_id: string; _voter_id: string };
+        Returns: number;
+      };
+      admin_save_final_ranking: {
+        Args: { _period_id: string; _player_ids: string[] };
+        Returns: number;
       };
       admin_set_special_award_eligibility: {
         Args: {
