@@ -1,21 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { AppShell } from "@/components/AppShell";
 import type { LucideIcon } from "lucide-react";
 import {
   Atom,
-  Boxes,
   Braces,
+  ChevronLeft,
+  ChevronRight,
   Cloud,
   Code,
   DatabaseZap,
   ExternalLink,
   FileCode2,
-  Footprints,
-  Goal,
-  HandFist,
+  Pause,
+  Play,
   Terminal,
   Wind,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/the-creator")({
@@ -68,16 +70,17 @@ const JOURNEY = [
   },
 ];
 
-const ACHIEVEMENTS: { icon: LucideIcon; title: string; detail: string }[] = [
-  { icon: Goal, title: "Football", detail: "Player" },
-  { icon: Footprints, title: "Skating", detail: "District / State Level" },
-  { icon: HandFist, title: "Taekwondo", detail: "District / State Level" },
-  {
-    icon: Boxes,
-    title: "Technology & Product Building",
-    detail: "Product Development and Web Applications",
-  },
+const MEMORIES = [
+  "/images/prc-memories/prc-memory-01.png",
+  "/images/prc-memories/prc-memory-02.png",
+  "/images/prc-memories/prc-memory-03.png",
+  "/images/prc-memories/prc-memory-04.png",
+  "/images/prc-memories/prc-memory-05.png",
+  "/images/prc-memories/prc-memory-06.png",
+  "/images/prc-memories/prc-memory-07.png",
 ];
+
+const slideNumber = (n: number) => String(n).padStart(2, "0");
 
 function Panel({
   children,
@@ -117,6 +120,234 @@ function Label({
       />
       {children}
     </p>
+  );
+}
+
+function MemoriesSection({ delay = 180 }: { delay?: number }) {
+  const count = MEMORIES.length;
+  const [index, setIndex] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [viewer, setViewer] = useState(false);
+  const [tabVisible, setTabVisible] = useState(true);
+  const touchStartX = useRef<number | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  const goTo = (step: number) =>
+    setIndex((current) => (current + step + count) % count);
+
+  const openViewer = () => {
+    openerRef.current = document.activeElement as HTMLElement | null;
+    setViewer(true);
+  };
+
+  const closeViewer = () => setViewer(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (media.matches) setPlaying(false);
+    const onChange = (event: MediaQueryListEvent) => {
+      if (event.matches) setPlaying(false);
+    };
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    const sync = () => setTabVisible(document.visibilityState === "visible");
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => document.removeEventListener("visibilitychange", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!playing || viewer || !tabVisible) return;
+    const timer = window.setTimeout(
+      () => setIndex((i) => (i + 1) % count),
+      5000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [playing, viewer, tabVisible, index, count]);
+
+  useEffect(() => {
+    if (!viewer) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setViewer(false);
+      else if (event.key === "ArrowRight")
+        setIndex((i) => (i + 1) % MEMORIES.length);
+      else if (event.key === "ArrowLeft")
+        setIndex((i) => (i - 1 + MEMORIES.length) % MEMORIES.length);
+    };
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+      openerRef.current?.focus();
+      openerRef.current = null;
+    };
+  }, [viewer]);
+
+  const counter = (
+    <span className="tabular-nums">
+      {slideNumber(index + 1)} / {slideNumber(count)}
+    </span>
+  );
+
+  const viewerDialog = viewer
+    ? createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="PRC D'OR memories fullscreen viewer"
+          onClick={closeViewer}
+          onTouchStart={(event) => {
+            touchStartX.current = event.changedTouches[0].clientX;
+          }}
+          onTouchEnd={(event) => {
+            const startX = touchStartX.current;
+            touchStartX.current = null;
+            if (startX === null) return;
+            const delta = event.changedTouches[0].clientX - startX;
+            if (Math.abs(delta) > 48) goTo(delta < 0 ? 1 : -1);
+          }}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 p-4 motion-reduce:transition-none"
+        >
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              closeViewer();
+            }}
+            aria-label="Close fullscreen viewer"
+            className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--gold)]/40 bg-black/70 text-gold transition hover:border-[var(--gold)] hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] motion-reduce:transition-none sm:right-5 sm:top-5"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+
+          <div
+            className="flex max-h-full max-w-full items-center justify-center"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <img
+              src={MEMORIES[index]}
+              alt={`PRC D'OR memory photograph ${slideNumber(index + 1)} of ${slideNumber(count)}`}
+              decoding="async"
+              className="max-h-[82vh] max-w-[92vw] object-contain"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              goTo(-1);
+            }}
+            aria-label="Previous photograph"
+            className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--gold)]/40 bg-black/70 text-gold transition hover:border-[var(--gold)] hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] motion-reduce:transition-none sm:left-5"
+          >
+            <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              goTo(1);
+            }}
+            aria-label="Next photograph"
+            className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--gold)]/40 bg-black/70 text-gold transition hover:border-[var(--gold)] hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] motion-reduce:transition-none sm:right-5"
+          >
+            <ChevronRight className="h-5 w-5" aria-hidden="true" />
+          </button>
+
+          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs font-medium tracking-[0.2em] text-gold">
+            <span aria-live="polite" className="tabular-nums">
+              {slideNumber(index + 1)} / {slideNumber(count)}
+            </span>
+          </p>
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <Panel delay={delay}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Label>Memories of PRC</Label>
+          <p className="mt-2 text-sm text-muted-foreground">
+            A few moments worth remembering.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setPlaying((value) => !value)}
+          aria-label={
+            playing ? "Pause automatic slideshow" : "Play automatic slideshow"
+          }
+          aria-pressed={playing}
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-1.5 text-xs font-medium text-foreground/85 transition-colors duration-300 hover:border-[var(--gold)]/40 hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] motion-reduce:transition-none"
+        >
+          {playing ? (
+            <Pause className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
+          ) : (
+            <Play className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
+          )}
+          {playing ? "Pause" : "Play"}
+        </button>
+      </div>
+
+      <div className="relative mt-4 aspect-[4/3] overflow-hidden rounded-xl border border-[var(--gold)]/25 bg-black/40">
+        {MEMORIES.map((src, i) => (
+          <img
+            key={src}
+            src={src}
+            alt={`PRC D'OR memory photograph ${slideNumber(i + 1)} of ${slideNumber(count)}`}
+            loading={i === 0 ? "eager" : "lazy"}
+            decoding="async"
+            aria-hidden={i !== index}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 motion-reduce:transition-none ${
+              i === index ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        ))}
+        <button
+          type="button"
+          onClick={openViewer}
+          aria-label="View photograph fullscreen"
+          className="absolute inset-0 z-10 cursor-zoom-in bg-gradient-to-t from-black/45 via-transparent to-transparent focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[var(--gold)]"
+        />
+      </div>
+
+      <div className="mt-3 flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => goTo(-1)}
+          aria-label="Previous photograph"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-card/40 text-foreground/85 transition-colors duration-300 hover:border-[var(--gold)]/40 hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] motion-reduce:transition-none"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        </button>
+        <p className="min-w-[5.5rem] text-center text-xs font-medium tracking-[0.2em] text-muted-foreground">
+          {counter}
+        </p>
+        <button
+          type="button"
+          onClick={() => goTo(1)}
+          aria-label="Next photograph"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-card/40 text-foreground/85 transition-colors duration-300 hover:border-[var(--gold)]/40 hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] motion-reduce:transition-none"
+        >
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+
+      {viewerDialog}
+    </Panel>
   );
 }
 
@@ -250,29 +481,9 @@ function TheCreator() {
         </ul>
       </Panel>
 
-      {/* ── Row: Achievements · Beyond the Code ───────────────── */}
+      {/* ── Row: Memories · Beyond the Code ──────────────────── */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel delay={180}>
-          <Label>Achievements &amp; Interests</Label>
-          <ul className="mt-4 divide-y divide-border/50">
-            {ACHIEVEMENTS.map(({ icon: Icon, title, detail }) => (
-              <li
-                key={title}
-                className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
-              >
-                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--gold)]/20 bg-[var(--gold)]/5">
-                  <Icon className="h-4 w-4 text-gold" aria-hidden="true" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">{title}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    {detail}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Panel>
+        <MemoriesSection delay={180} />
 
         <Panel delay={220}>
           <Label>A Little More About Me</Label>
