@@ -1,0 +1,39 @@
+PRC D'OR landing page — image credits
+======================================
+
+All portrait images are used under the licenses below. Each file was
+converted to grayscale and cropped/resized for display on this page;
+the original source and license are unchanged.
+
+legend-ronaldo.jpg
+  Subject : Cristiano Ronaldo
+  Author  : Bryan Berlin / WikiPortraits
+  Source  : https://commons.wikimedia.org/wiki/File:Cristiano_Ronaldo_Croatia_v_Portugal_2_July_2026-075_(cropped).jpg
+  License : CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+  Changes : cropped, resized to 900x1350, converted to grayscale.
+
+legend-messi.jpg
+  Subject : Lionel Messi
+  Author  : Hossein Zohrevand (Tasnim News Agency)
+  Source  : https://commons.wikimedia.org/wiki/File:Lionel-Messi-Argentina-2022-FIFA-World-Cup_sharpness.jpg
+  License : CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  Changes : cropped, resized to 795x1192, converted to grayscale.
+
+legend-pele.jpg
+  Subject : Pele
+  Credit  : El Grafico / Agencia Una
+  Source  : https://commons.wikimedia.org/wiki/File:Pele_con_brasil.jpg
+  License : Public domain
+  Changes : cropped, resized to 342x513, converted to grayscale.
+
+legend-maradona.jpg
+  Subject : Diego Maradona
+  Source  : https://commons.wikimedia.org/wiki/File:Maradona_1986_vs_italy.jpg
+  License : Public domain
+  Changes : cropped, resized to 444x667, converted to grayscale.
+
+prc-dor-trophy.png
+  Description : Photorealistic PRC D'OR golden football trophy (ball, crystal
+                cluster, black marble pedestal with PRC D'OR plaque).
+  Source      : Supplied directly by the project owner for this page.
+  Usage       : Used unmodified and unfiltered on the landing page.
