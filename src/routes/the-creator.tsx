@@ -78,6 +78,8 @@ const MEMORIES = [
   "/images/prc-memories/prc-memory-05.png",
   "/images/prc-memories/prc-memory-06.png",
   "/images/prc-memories/prc-memory-07.png",
+  "/images/prc-memories/prc-memory-08.png",
+  "/images/prc-memories/prc-memory-09.png",
 ];
 
 const slideNumber = (n: number) => String(n).padStart(2, "0");
