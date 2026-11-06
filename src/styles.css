@@ -35,6 +35,11 @@
   --color-gold-dim: var(--gold-dim);
   --color-bronze: var(--bronze);
   --color-silver: var(--silver);
+  --color-spectrum-1: var(--spectrum-1);
+  --color-spectrum-2: var(--spectrum-2);
+  --color-spectrum-3: var(--spectrum-3);
+  --color-spectrum-4: var(--spectrum-4);
+  --color-spectrum-5: var(--spectrum-5);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -48,6 +53,8 @@
     color-mix(in oklab, var(--gold) 35%, transparent);
   --shadow-glow: 0 0 60px -10px
     color-mix(in oklab, var(--gold) 50%, transparent);
+  --shadow-spectrum: 0 10px 34px -10px
+    color-mix(in oklab, var(--spectrum-3) 60%, transparent);
 }
 
 :root {
@@ -85,6 +92,12 @@
   --gold-dim: oklch(0.55 0.1 80);
   --bronze: oklch(0.65 0.12 50);
   --silver: oklch(0.82 0.02 250);
+
+  --spectrum-1: oklch(0.82 0.12 200);
+  --spectrum-2: oklch(0.62 0.24 300);
+  --spectrum-3: oklch(0.72 0.23 345);
+  --spectrum-4: oklch(0.76 0.16 40);
+  --spectrum-5: oklch(0.93 0.14 95);
 
   --chart-1: oklch(0.82 0.14 85);
   --chart-2: oklch(0.65 0.12 50);
@@ -141,6 +154,28 @@
 }
 @utility border-gold {
   border-color: var(--gold);
+}
+@utility bg-spectrum-gradient {
+  background: linear-gradient(
+    120deg,
+    var(--spectrum-1) 0%,
+    var(--spectrum-2) 27%,
+    var(--spectrum-3) 50%,
+    var(--spectrum-4) 74%,
+    var(--spectrum-5) 100%
+  );
+}
+@utility bg-spectrum-progress {
+  background-image: linear-gradient(
+    120deg,
+    var(--spectrum-1) 0%,
+    var(--spectrum-2) 27%,
+    var(--spectrum-3) 50%,
+    var(--spectrum-4) 74%,
+    var(--spectrum-5) 100%
+  );
+  background-size: 100cqw 100%;
+  background-repeat: no-repeat;
 }
 @utility glass {
   background: color-mix(in oklab, var(--card) 60%, transparent);

@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { PRCDorIntroPopup } from "@/components/PRCDorIntroPopup";
 import { PRCDor2026WinnerPopup } from "@/components/PRCDor2026WinnerPopup";
+import { MusicPlayer } from "@/components/MusicPlayer";
 
 function NotFoundComponent() {
   return (
@@ -154,6 +155,8 @@ function AppOverlays() {
       <Toaster theme="dark" position="top-center" richColors />
       <PRCDorIntroPopup />
       {!loading && user ? <PRCDor2026WinnerPopup /> : null}
+      {/* Mounted once at the root so the soundtrack survives every route change. */}
+      <MusicPlayer />
     </>
   );
 }

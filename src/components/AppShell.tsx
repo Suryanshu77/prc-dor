@@ -207,7 +207,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      <main className="flex-1 px-4 pb-12 pt-20 md:px-10 md:pt-10">
+      {/* pb-28 keeps the last row of content clear of the floating player */}
+      <main className="flex-1 px-4 pb-28 pt-20 md:px-10 md:pt-10">
         <div className="mx-auto w-full max-w-7xl">{children}</div>
       </main>
     </div>
