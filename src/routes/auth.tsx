@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 
 const searchSchema = z.object({
   mode: z.enum(["login", "signup"]).optional(),
@@ -82,6 +83,23 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [forgot, setForgot] = useState(false);
+
+  if (forgot) {
+    return (
+      <div className="mt-6">
+        <div className="mb-4">
+          <h2 className="font-display text-xl text-foreground">
+            Reset your password
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Enter your email and we&apos;ll send you a secure reset link.
+          </p>
+        </div>
+        <ForgotPasswordForm onBack={() => setForgot(false)} />
+      </div>
+    );
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -101,19 +119,32 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form onSubmit={submit} className="mt-6 space-y-4">
       <div className="space-y-2">
-        <Label>Email</Label>
+        <Label htmlFor="login-email">Email</Label>
         <Input
+          id="login-email"
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
       </div>
       <div className="space-y-2">
-        <Label>Password</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="login-password">Password</Label>
+          <button
+            type="button"
+            onClick={() => setForgot(true)}
+            className="cursor-pointer text-xs text-gold underline-offset-4 transition-colors hover:text-gold-soft hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+          >
+            Forgot password?
+          </button>
+        </div>
         <Input
+          id="login-password"
           type="password"
           required
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />

@@ -18,8 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 import { toast } from "sonner";
-import { AtSign, Hash, Mail, Pencil } from "lucide-react";
+import { AtSign, Hash, Mail, Pencil, ShieldCheck } from "lucide-react";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 // Profile queries never select `email` (private); the form renders the
@@ -426,6 +427,17 @@ function ProfilePage() {
             {user?.email || "—"}
           </InfoRow>
         </dl>
+      </div>
+
+      <div className="glass-strong rounded-2xl p-6 md:p-8">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-gold" aria-hidden="true" />
+          <h2 className="font-display text-xl text-foreground">Security</h2>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Change the password for your PRC D&apos;or account.
+        </p>
+        <ChangePasswordForm />
       </div>
     </div>
   );

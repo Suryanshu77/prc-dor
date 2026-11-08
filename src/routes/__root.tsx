@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -149,12 +150,16 @@ function RootComponent() {
  */
 function AppOverlays() {
   const { user, loading } = useAuth();
+  // The password reset page must stay unobstructed while the user picks a new
+  // password, so the two promotional dialogs are skipped there.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const onPasswordReset = pathname === "/reset-password";
 
   return (
     <>
       <Toaster theme="dark" position="top-center" richColors />
-      <PRCDorIntroPopup />
-      {!loading && user ? <PRCDor2026WinnerPopup /> : null}
+      {onPasswordReset ? null : <PRCDorIntroPopup />}
+      {!loading && user && !onPasswordReset ? <PRCDor2026WinnerPopup /> : null}
       {/* Mounted once at the root so the soundtrack survives every route change. */}
       <MusicPlayer />
     </>
