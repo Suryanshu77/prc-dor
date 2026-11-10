@@ -771,16 +771,19 @@ function AwardManageCard({
   }
 
   async function saveEligibility() {
+    // Always send all four named args. JSON.stringify drops `undefined`
+    // keys, and PostgREST then cannot resolve the 4-parameter RPC
+    // (PGRST202 schema-cache miss). SQL NULL is the correct "unset" value.
     const { error } = await supabase.rpc(
       "admin_set_special_award_eligibility",
       {
         _award_id: award.id,
         _eligibility_type: eligType,
-        _max_age: eligType === "max_age" ? Number(maxAge) : undefined,
+        _max_age: eligType === "max_age" ? Number(maxAge) : null,
         _position:
           eligType === "by_position" && eligPosition
             ? (eligPosition as Database["public"]["Enums"]["player_position"])
-            : undefined,
+            : null,
       },
     );
     if (error) {

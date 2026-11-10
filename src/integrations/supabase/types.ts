@@ -663,8 +663,8 @@ export type Database = {
         Args: {
           _award_id: string;
           _eligibility_type: string;
-          _max_age?: number;
-          _position?: Database["public"]["Enums"]["player_position"];
+          _max_age: number | null;
+          _position: Database["public"]["Enums"]["player_position"] | null;
         };
         Returns: undefined;
       };

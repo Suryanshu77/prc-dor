@@ -249,7 +249,9 @@
   .prc-dor-winner-popup,
   .prc-dor-winner-popup *,
   .prc-dor-intro-popup,
-  .prc-dor-intro-popup * {
+  .prc-dor-intro-popup *,
+  .prc-countdown-popover,
+  .prc-countdown-popover * {
     animation: none !important;
     transition: none !important;
   }

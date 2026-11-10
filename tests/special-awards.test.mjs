@@ -283,6 +283,31 @@ test("ballot submission RPC is atomic, admin-free, five-only and double-vote saf
   ]) {
     assert.ok(admin.includes(rpc), `admin UI must call ${rpc}`);
   }
+  // Regression: PostgREST resolves RPC overloads by exact named-arg set.
+  // JSON.stringify drops `undefined` keys, so the 4-param eligibility RPC
+  // must receive explicit nulls for unused _max_age/_position — otherwise
+  // PostgREST searches for a 3/2-param overload and returns PGRST202
+  // ("Could not find the function ... in the schema cache").
+  const saveEligibility = admin.match(
+    /async function saveEligibility\(\)[\s\S]*?\n  \}/,
+  );
+  assert.ok(saveEligibility, "saveEligibility must exist in admin.tsx");
+  const rpcArgs = saveEligibility[0].match(/supabase\.rpc\([\s\S]*?\);/);
+  assert.ok(rpcArgs, "saveEligibility must call supabase.rpc");
+  assert.ok(
+    !/\bundefined\b/.test(rpcArgs[0]),
+    "eligibility RPC args must not use undefined (keys would be omitted from JSON)",
+  );
+  assert.match(
+    rpcArgs[0],
+    /_max_age:\s*eligType === "max_age" \? Number\(maxAge\) : null/,
+    "_max_age must be null (not undefined) when unused",
+  );
+  assert.match(
+    rpcArgs[0],
+    /_position:[\s\S]*?: null,/,
+    "_position must be null (not undefined) when unused",
+  );
   const results = await readFile(
     path.join(ROOT, "src/routes/_authenticated/results.tsx"),
     "utf8",

@@ -63,18 +63,34 @@ function Dashboard() {
     },
   });
 
+  // Registered players does not depend on an active voting period. Keep it
+  // out of statsQ (which is gated on periodQ) so the card still renders
+  // when no period is active.
+  const playersCountQ = useQuery({
+    queryKey: ["dashboard-players-count"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("id");
+      if (error) {
+        console.error("[dashboard] failed to load registered players", error);
+        toast.error("Couldn't load registered players.", {
+          id: "dashboard-players-count",
+        });
+        return null;
+      }
+      return data?.length ?? null;
+    },
+  });
+
   const statsQ = useQuery({
     queryKey: ["dashboard-stats", periodQ.data?.id],
     enabled: !!periodQ.data,
     queryFn: async () => {
-      const [players, stats, mine] = await Promise.all([
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
+      const [stats, mine] = await Promise.all([
         supabase.rpc("get_period_vote_stats", { _period_id: periodQ.data!.id }),
         supabase.rpc("has_voted_in_period", { _period_id: periodQ.data!.id }),
       ]);
-      if (players.error || stats.error || mine.error) {
+      if (stats.error || mine.error) {
         console.error("[dashboard] failed to load stats", {
-          players: players.error,
           stats: stats.error,
           hasVoted: mine.error,
         });
@@ -85,7 +101,6 @@ function Dashboard() {
       const row = (stats.data ?? [])[0] as
         { vote_count: number; voter_count: number } | undefined;
       return {
-        playersCount: players.count ?? 0,
         voteCount: row?.vote_count ?? 0,
         votersCount: row?.voter_count ?? 0,
         hasVoted: mine.data === true,
@@ -117,8 +132,8 @@ function Dashboard() {
   const period = periodQ.data;
   const stats = statsQ.data;
   const completion =
-    stats && stats.playersCount > 0
-      ? Math.round((stats.votersCount / stats.playersCount) * 100)
+    stats && (playersCountQ.data ?? 0) > 0
+      ? Math.round(((stats.votersCount ?? 0) / (playersCountQ.data ?? 1)) * 100)
       : 0;
 
   return (
@@ -230,7 +245,7 @@ function Dashboard() {
         <StatCard
           icon={Users}
           label="Registered players"
-          value={stats?.playersCount ?? 0}
+          value={playersCountQ.data ?? 0}
         />
         <StatCard
           icon={Vote}
@@ -241,7 +256,7 @@ function Dashboard() {
           icon={Trophy}
           label="Voting completion"
           value={`${completion}%`}
-          sub={`${stats?.votersCount ?? 0} of ${stats?.playersCount ?? 0} voters`}
+          sub={`${stats?.votersCount ?? 0} of ${playersCountQ.data ?? 0} voters`}
         />
         <StatCard
           icon={CalendarClock}

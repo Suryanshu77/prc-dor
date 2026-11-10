@@ -21,6 +21,7 @@ import {
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { CountdownWidget } from "@/components/CountdownWidget";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -207,10 +208,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      {/* pb-28 keeps the last row of content clear of the floating player */}
-      <main className="flex-1 px-4 pb-28 pt-20 md:px-10 md:pt-10">
-        <div className="mx-auto w-full max-w-7xl">{children}</div>
-      </main>
+      {/* Content column: slim countdown bar sits above every authenticated page */}
+      <div className="flex min-w-0 flex-1 flex-col pt-20 md:pt-0">
+        <div className="flex items-center justify-end border-b border-border/40 px-4 py-2 md:px-10 md:py-3">
+          <CountdownWidget />
+        </div>
+        {/* pb-28 keeps the last row of content clear of the floating player */}
+        <main className="flex-1 px-4 pb-28 pt-3 md:px-10 md:pt-3">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }
