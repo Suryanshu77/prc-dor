@@ -31,6 +31,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  ArrowLeft,
   GripVertical,
   Plus,
   X,
@@ -86,6 +87,15 @@ function eligibilityLabel(award: Award): string {
       return "Open to all players";
   }
 }
+
+// Trophy artwork for the pre-ballot introduction screen, keyed by the award_key
+// values constrained in the special-awards migration.
+const AWARD_TROPHY_IMAGES: Record<string, string> = {
+  kopa: "/images/special-awards/kopa.png",
+  yashin: "/images/special-awards/yashin.png",
+  socrates: "/images/special-awards/socrates.png",
+  gerd_muller: "/images/special-awards/gerd_muller.png",
+};
 
 function SpecialAwardsPage() {
   const { user } = useAuth();
@@ -373,10 +383,78 @@ function AwardCard({
         </div>
       ) : (
         <div className="mt-4">
-          <SpecialBallot award={award} candidates={candidates} />
+          <AwardVoteStage award={award} candidates={candidates} />
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Introduction → ballot flow for a single award. The ballot component stays
+ * mounted (hidden) while the introduction is on screen, so stepping back to
+ * the introduction never discards an in-progress ranking.
+ */
+function AwardVoteStage({
+  award,
+  candidates,
+}: {
+  award: Award;
+  candidates: CandidateRow[];
+}) {
+  const [showIntro, setShowIntro] = useState(true);
+
+  return (
+    <div>
+      {!showIntro && (
+        <button
+          type="button"
+          onClick={() => setShowIntro(true)}
+          className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-gold"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to introduction
+        </button>
+      )}
+
+      <div className={showIntro ? "hidden" : undefined}>
+        <SpecialBallot award={award} candidates={candidates} />
+      </div>
+
+      {showIntro && (
+        <AwardIntro award={award} onContinue={() => setShowIntro(false)} />
+      )}
+    </div>
+  );
+}
+
+function AwardIntro({
+  award,
+  onContinue,
+}: {
+  award: Award;
+  onContinue: () => void;
+}) {
+  const trophy = AWARD_TROPHY_IMAGES[award.award_key];
+
+  return (
+    <div className="flex flex-col items-center gap-8 py-10">
+      {trophy ? (
+        <img
+          src={trophy}
+          alt={award.title}
+          className="animate-fade-up max-h-[460px] w-auto max-w-full object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] max-sm:max-h-[45vh]"
+        />
+      ) : null}
+      <Button
+        onClick={onContinue}
+        size="lg"
+        style={{ animationDelay: "150ms" }}
+        className="animate-fade-up bg-gold-gradient px-10 text-background hover:opacity-90"
+      >
+        Continue to Vote
+      </Button>
+    </div>
   );
 }
 

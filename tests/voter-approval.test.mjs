@@ -998,6 +998,90 @@ test("function EXECUTE: get_my_approval_status / admin_* are authenticated-only"
 });
 
 // ---------------------------------------------------------------------------
+// Return-type contract — production SQLSTATE 42804 regression
+// ---------------------------------------------------------------------------
+// Production declared `email text` but selected bare `u.email` from
+// auth.users, whose real type is character varying(255). plpgsql matches a
+// RETURN QUERY result shape to the declared RETURNS TABLE exactly (no
+// assignment cast), so every admin listing raised
+// 42804 "structure of query does not match function result type" and the
+// queue rendered empty with a toast. The stub used to declare `email text`,
+// which hid the defect from every local run.
+test("admin list RPC returns exactly the declared RETURNS TABLE types", async () => {
+  // 1. Fixture parity with production — reverting this hides the defect.
+  const emailType = await db.query(
+    `SELECT format_type(a.atttypid, a.atttypmod) AS t
+       FROM pg_attribute a
+      WHERE a.attrelid = 'auth.users'::regclass AND a.attname = 'email'`,
+  );
+  assert.equal(
+    emailType.rows[0].t,
+    "character varying(255)",
+    "stub auth.users.email must mirror production Supabase",
+  );
+
+  // 2. Declared output columns: RETURNS TABLE params carry proargmodes 't'.
+  const declared = await db.query(
+    `SELECT p.proargnames[i]::text AS name, p.proallargtypes[i] AS oid
+       FROM pg_proc p
+       CROSS JOIN LATERAL generate_subscripts(p.proallargtypes, 1) AS s(i)
+      WHERE p.oid = 'public.admin_list_registration_requests(text)'::regprocedure
+        AND p.proargmodes[i] = 't'
+      ORDER BY i`,
+  );
+  assert.deepEqual(
+    declared.rows.map((r) => r.name),
+    [
+      "user_id",
+      "email",
+      "display_name",
+      "status",
+      "rejection_reason",
+      "decided_by",
+      "decided_at",
+      "created_at",
+      "updated_at",
+    ],
+    "return column names/order changed",
+  );
+
+  // 3. Execute as an admin for every filter: a mismatched column raises
+  //    42804 here before a single row comes back — the exact production bug.
+  await asRole("authenticated", adminId);
+  try {
+    for (const status of [null, "pending", "approved", "rejected"]) {
+      const rows = await db.query(
+        "SELECT * FROM public.admin_list_registration_requests($1)",
+        [status],
+      );
+      assert.ok(
+        rows.rows.length > 0,
+        `${status ?? "unfiltered"} queue must not be empty`,
+      );
+
+      // 4. Declared type of each column == type actually returned.
+      const probes = declared.rows
+        .map((d) => `pg_typeof(r."${d.name}")::oid AS "${d.name}"`)
+        .join(", ");
+      const actual = await db.query(
+        `SELECT ${probes}
+           FROM public.admin_list_registration_requests($1) r`,
+        [status],
+      );
+      for (const d of declared.rows) {
+        assert.equal(
+          Number(actual.rows[0][d.name]),
+          Number(d.oid),
+          `column ${d.name} returned a different type than declared`,
+        );
+      }
+    }
+  } finally {
+    await resetRole();
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Historical data safety
 // ---------------------------------------------------------------------------
 test("historical vote rows are untouched by the approval system", async () => {

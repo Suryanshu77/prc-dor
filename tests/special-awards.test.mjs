@@ -334,6 +334,46 @@ test("ballot submission RPC is atomic, admin-free, five-only and double-vote saf
   }
 });
 
+test("special-award introduction screen precedes the ballot and preserves selections", async () => {
+  const src = await readFile(
+    path.join(ROOT, "src/routes/_authenticated/vote-special.tsx"),
+    "utf8",
+  );
+
+  // One trophy image per award_key, exactly as constrained by the migration.
+  for (const key of ["kopa", "yashin", "socrates", "gerd_muller"]) {
+    assert.ok(
+      src.includes(`${key}: "/images/special-awards/${key}.png"`),
+      `intro must map award_key "${key}" to /images/special-awards/${key}.png`,
+    );
+  }
+
+  // The screen holds only the trophy and the gold CTA — no prose about it.
+  const intro = src.match(/function AwardIntro\([\s\S]*?\n\}$/m)?.[0];
+  assert.ok(intro, "AwardIntro must exist");
+  assert.strictEqual(
+    (intro.match(/<img/g) ?? []).length,
+    1,
+    "intro must show exactly one trophy image",
+  );
+  assert.ok(!/<p[\s>]/.test(intro), "intro must not contain prose");
+  assert.match(intro, /Continue to Vote/);
+
+  // Returning to the introduction must not lose an in-progress ranking, so
+  // SpecialBallot stays mounted and is toggled with `hidden` rather than
+  // unmounted by a conditional render.
+  assert.match(
+    src,
+    /className=\{showIntro \? "hidden" : undefined\}/,
+    "ballot wrapper toggles hidden instead of unmounting",
+  );
+  assert.ok(
+    !src.includes("{showIntro && <SpecialBallot"),
+    "SpecialBallot must not be unmounted while the introduction is showing",
+  );
+  assert.match(src, /Back to introduction/);
+});
+
 // ==========================================================================
 // Functional tests (PGlite, hermetic: base migration + special awards only)
 // ==========================================================================
