@@ -1032,7 +1032,8 @@ function SpecialAwardsSection() {
       <p className="mb-4 max-w-2xl text-sm text-muted-foreground">
         Configure eligibility, manage nominations, open voting and reveal
         results per award. Nominees: top-5 ballots score 5, 4, 3, 2, 1 points;
-        ordering is per edition.
+        the Yashin Trophy opens at 3 and ranks every nominee while it only has 3
+        or 4. Ordering is per edition.
       </p>
 
       <div className="space-y-4">
@@ -1202,8 +1203,9 @@ function AwardManageCard({
           <div className="font-display text-lg">{award.title}</div>
           <div className="mt-0.5 text-xs text-muted-foreground">
             {award.description ?? describeEligibility(award)} ·{" "}
-            {candidates.length}/5+ nominees · {stats.voter_count} ballots ·{" "}
-            {stats.vote_count} ranked picks
+            {candidates.length}/{award.award_key === "yashin" ? "3+" : "5+"}{" "}
+            nominees · {stats.voter_count} ballots · {stats.vote_count} ranked
+            picks
           </div>
         </div>
 

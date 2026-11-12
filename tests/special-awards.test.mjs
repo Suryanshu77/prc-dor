@@ -256,7 +256,7 @@ test("results RPC gates visibility via results_visible or admin role", () => {
   assert.match(gate, /has_role\(auth\.uid\(\), 'admin'/);
 });
 
-test("ballot submission RPC is atomic, admin-free, five-only and double-vote safe (source-level)", async () => {
+test("ballot submission RPC is atomic, admin-free, award-specific and double-vote safe (source-level)", async () => {
   const src = await readFile(
     path.join(ROOT, "src/routes/_authenticated/vote-special.tsx"),
     "utf8",
@@ -267,7 +267,21 @@ test("ballot submission RPC is atomic, admin-free, five-only and double-vote saf
     /SPECIAL_POINTS_BY_RANK/,
     "UI must display the shared 5..1 scoring constant",
   );
-  assert.match(src, /ranking\.length !== 5/, "UI enforces exactly five picks");
+  assert.match(
+    src,
+    /ranking\.length !== requiredRankCount/,
+    "UI enforces the award's required ranking length",
+  );
+  assert.match(
+    src,
+    /award\.award_key === "yashin"[\s\S]{0,160}Math\.min\(candidates\.length, 5\)/,
+    "only the Yashin Trophy may rank fewer than five nominees",
+  );
+  assert.match(
+    src,
+    /\? Math\.min\(candidates\.length, 5\)\s*:\s*5/,
+    "every other award still requires exactly five picks",
+  );
   const admin = await readFile(
     path.join(ROOT, "src/routes/_authenticated/admin.tsx"),
     "utf8",

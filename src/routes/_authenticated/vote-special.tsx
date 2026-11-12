@@ -504,11 +504,20 @@ function SpecialBallot({
     [candidates, ranking],
   );
 
+  // Yashin only has 3-4 eligible goalkeepers, so it ranks every nominee while
+  // the pool is 3 or 4 and the top 5 once the pool reaches 5+. Every other
+  // award stays a fixed top-5 ballot. submit_special_ballot enforces the same
+  // rule server-side, so the UI and the RPC can never disagree.
+  const requiredRankCount =
+    award.award_key === "yashin" && candidates.length > 0
+      ? Math.min(candidates.length, 5)
+      : 5;
+
   const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor));
 
   function add(c: CandidateRow) {
-    if (ranking.length >= 5) {
-      toast.error("You can only rank 5 nominees");
+    if (ranking.length >= requiredRankCount) {
+      toast.error(`You can only rank ${requiredRankCount} nominees`);
       return;
     }
     setRanking([...ranking, c]);
@@ -526,8 +535,8 @@ function SpecialBallot({
 
   async function submit() {
     if (!user) return;
-    if (ranking.length !== 5) {
-      toast.error("Rank exactly 5 nominees");
+    if (ranking.length !== requiredRankCount) {
+      toast.error(`Rank exactly ${requiredRankCount} nominees`);
       return;
     }
     setSubmitting(true);
@@ -553,7 +562,7 @@ function SpecialBallot({
         <div>
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-lg">
-              Your ranking ({ranking.length}/5)
+              Your ranking ({ranking.length}/{requiredRankCount})
             </h3>
             {ranking.length > 0 && (
               <button
@@ -567,7 +576,7 @@ function SpecialBallot({
 
           {ranking.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              Add nominees from the right to start your top 5.
+              Add nominees from the right to start your ranking.
             </div>
           ) : (
             <DndContext
@@ -595,7 +604,7 @@ function SpecialBallot({
 
           <Button
             onClick={() => setConfirmOpen(true)}
-            disabled={ranking.length !== 5}
+            disabled={ranking.length !== requiredRankCount}
             className="mt-5 w-full bg-gold-gradient text-background hover:opacity-90"
           >
             Submit final ballot
@@ -610,7 +619,7 @@ function SpecialBallot({
               <button
                 key={c.id}
                 onClick={() => add(c)}
-                disabled={ranking.length >= 5}
+                disabled={ranking.length >= requiredRankCount}
                 className="group flex items-center gap-3 rounded-lg border border-border bg-secondary/40 p-2.5 text-left transition hover:border-[var(--gold)] disabled:opacity-40"
               >
                 <PlayerAvatar
