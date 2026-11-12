@@ -386,6 +386,44 @@ export type Database = {
         };
         Relationships: [];
       };
+      voter_approvals: {
+        Row: {
+          created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          rejection_reason: string | null;
+          status: Database["public"]["Enums"]["voter_approval_status"];
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          rejection_reason?: string | null;
+          status: Database["public"]["Enums"]["voter_approval_status"];
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          rejection_reason?: string | null;
+          status?: Database["public"]["Enums"]["voter_approval_status"];
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "voter_approvals_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       votes: {
         Row: {
           created_at: string;
@@ -557,6 +595,10 @@ export type Database = {
           period_id: string;
         }[];
       };
+      admin_decide_registration: {
+        Args: { _user_id: string; _decision: string; _reason?: string };
+        Returns: undefined;
+      };
       admin_get_ballot: {
         Args: {
           _period_id: string;
@@ -602,6 +644,20 @@ export type Database = {
         Returns: {
           email: string;
           id: string;
+        }[];
+      };
+      admin_list_registration_requests: {
+        Args: { _status?: string };
+        Returns: {
+          user_id: string;
+          email: string | null;
+          display_name: string;
+          status: Database["public"]["Enums"]["voter_approval_status"];
+          rejection_reason: string | null;
+          decided_by: string | null;
+          decided_at: string | null;
+          created_at: string;
+          updated_at: string;
         }[];
       };
       admin_list_voters: {
@@ -690,6 +746,10 @@ export type Database = {
           total_rankings: number;
         }[];
       };
+      get_my_approval_status: {
+        Args: never;
+        Returns: Database["public"]["Enums"]["voter_approval_status"];
+      };
       get_period_results: {
         Args: { _period_id: string };
         Returns: {
@@ -768,6 +828,7 @@ export type Database = {
       app_role: "admin" | "user";
       player_position:
         "Goalkeeper" | "Defender" | "Midfielder" | "Winger" | "Striker";
+      voter_approval_status: "pending" | "approved" | "rejected";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -903,6 +964,7 @@ export const Constants = {
         "Winger",
         "Striker",
       ],
+      voter_approval_status: ["pending", "approved", "rejected"],
     },
   },
 } as const;

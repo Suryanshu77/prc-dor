@@ -116,6 +116,11 @@ export default function AdminNotifications() {
       qc.invalidateQueries({ queryKey: ["admin-notifications"] });
     }
     setOpen(false);
+    if (n.type === "user_registration") {
+      // Deep-link into the admin Registrations queue (pending tab).
+      navigate({ to: "/admin", search: { reg: "pending" } });
+      return;
+    }
     navigate({ to: "/players/$id", params: { id: n.user_id } });
   }
 

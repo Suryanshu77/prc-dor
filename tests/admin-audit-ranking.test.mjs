@@ -364,6 +364,12 @@ async function createUser(fullName) {
       JSON.stringify({ full_name: fullName }),
     ],
   );
+  // Full chain includes the voter-approval migration: the signup trigger
+  // leaves new users pending, which would block submit_main_ballot.
+  await db.query(
+    "UPDATE public.voter_approvals SET status = 'approved', decided_at = now() WHERE user_id = $1",
+    [id],
+  );
   return id;
 }
 

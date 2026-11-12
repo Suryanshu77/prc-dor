@@ -282,6 +282,13 @@ async function createUser(fullName) {
       JSON.stringify({ full_name: fullName }),
     ],
   );
+  // The chain (minus the skipped cutover applied last) includes the
+  // voter-approval migration: signup leaves users pending, so flip to
+  // approved before any submit_main_ballot call.
+  await db.query(
+    "UPDATE public.voter_approvals SET status = 'approved', decided_at = now() WHERE user_id = $1",
+    [id],
+  );
   return id;
 }
 

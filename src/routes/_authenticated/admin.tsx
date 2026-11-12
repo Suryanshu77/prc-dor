@@ -5,6 +5,7 @@ import { deletePlayer } from "@/lib/admin-delete-player.server";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
@@ -13,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -31,6 +34,9 @@ import {
   Trophy,
   Award,
   X,
+  UserCheck,
+  UserX,
+  Inbox,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -43,13 +49,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+type RegistrationStatus = Database["public"]["Enums"]["voter_approval_status"];
+
+type RegistrationRow =
+  Database["public"]["Functions"]["admin_list_registration_requests"]["Returns"][number];
+
+const adminSearchSchema = z.object({
+  reg: z.enum(["pending", "approved", "rejected"]).optional(),
+});
+
 export const Route = createFileRoute("/_authenticated/admin")({
+  validateSearch: adminSearchSchema,
   head: () => ({ meta: [{ title: "Admin — PRC D'or" }] }),
   component: AdminPage,
 });
 
 function AdminPage() {
   const { isAdmin, loading } = useAuth();
+  const { reg } = Route.useSearch();
 
   if (loading) return null;
 
@@ -67,6 +84,8 @@ function AdminPage() {
           <h1 className="font-display text-4xl">Control room</h1>
         </header>
 
+        <RegistrationsSection initialTab={reg ?? "pending"} />
+
         <PeriodSection />
 
         <VoteAuditSection />
@@ -80,6 +99,333 @@ function AdminPage() {
         <HallOfFameSection />
       </div>
     </AdminLayout>
+  );
+}
+
+function RegistrationsSection({
+  initialTab,
+}: {
+  initialTab: RegistrationStatus;
+}) {
+  const qc = useQueryClient();
+  const [tab, setTab] = useState<RegistrationStatus>(initialTab);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [decide, setDecide] = useState<{
+    row: RegistrationRow;
+    decision: "approved" | "rejected";
+  } | null>(null);
+  const [reason, setReason] = useState("");
+
+  const listQ = useQuery({
+    queryKey: ["admin-registrations", tab],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        "admin_list_registration_requests",
+        { _status: tab },
+      );
+      if (error) {
+        console.error("[admin] failed to load registrations", error);
+        toast.error("Couldn't load registration requests.", {
+          id: "admin-registrations",
+        });
+        return [] as RegistrationRow[];
+      }
+      return (data ?? []) as RegistrationRow[];
+    },
+  });
+
+  async function confirmDecide() {
+    if (!decide || busyId) return;
+    setBusyId(decide.row.user_id);
+    try {
+      const { error } = await supabase.rpc("admin_decide_registration", {
+        _user_id: decide.row.user_id,
+        _decision: decide.decision,
+        _reason:
+          decide.decision === "rejected"
+            ? reason.trim() || undefined
+            : undefined,
+      });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success(
+        decide.decision === "approved"
+          ? `Approved ${decide.row.display_name}`
+          : `Rejected ${decide.row.display_name}`,
+      );
+      setDecide(null);
+      setReason("");
+      qc.invalidateQueries({ queryKey: ["admin-registrations"] });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const countsQ = useQuery({
+    queryKey: ["admin-registrations-counts"],
+    queryFn: async () => {
+      const statuses: RegistrationStatus[] = [
+        "pending",
+        "approved",
+        "rejected",
+      ];
+      const results = await Promise.all(
+        statuses.map(async (s) => {
+          const { data, error } = await supabase.rpc(
+            "admin_list_registration_requests",
+            { _status: s },
+          );
+          if (error) return [s, 0] as const;
+          return [s, (data ?? []).length] as const;
+        }),
+      );
+      return Object.fromEntries(results) as Record<RegistrationStatus, number>;
+    },
+  });
+
+  const rows = listQ.data ?? [];
+  const counts = countsQ.data;
+
+  return (
+    <section className="glass-strong rounded-2xl p-6">
+      <h2 className="mb-1 flex items-center gap-2 font-display text-2xl">
+        <Inbox className="h-5 w-5 text-gold" /> Registrations
+      </h2>
+      <p className="mb-4 max-w-2xl text-sm text-muted-foreground">
+        Approve or reject new accounts. Pending voters cannot submit ballots
+        until approved; rejected accounts stay blocked with no self-service
+        reapply.
+      </p>
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as RegistrationStatus)}>
+        <TabsList>
+          <TabsTrigger value="pending">
+            Pending{counts ? ` (${counts.pending})` : ""}
+          </TabsTrigger>
+          <TabsTrigger value="approved">
+            Approved{counts ? ` (${counts.approved})` : ""}
+          </TabsTrigger>
+          <TabsTrigger value="rejected">
+            Rejected{counts ? ` (${counts.rejected})` : ""}
+          </TabsTrigger>
+        </TabsList>
+
+        {(["pending", "approved", "rejected"] as RegistrationStatus[]).map(
+          (status) => (
+            <TabsContent key={status} value={status}>
+              {listQ.isLoading ? (
+                <div className="py-6 text-sm text-muted-foreground">
+                  Loading…
+                </div>
+              ) : rows.length === 0 ? (
+                <div className="py-6 text-sm text-muted-foreground">
+                  No {status} registrations.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-left text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2">Account</th>
+                        <th className="px-3 py-2">Email</th>
+                        <th className="px-3 py-2">Status</th>
+                        <th className="px-3 py-2">Reason</th>
+                        <th className="px-3 py-2">Decided</th>
+                        <th className="px-3 py-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr
+                          key={r.user_id}
+                          className="border-t border-border/30"
+                        >
+                          <td className="px-3 py-2 font-medium">
+                            {r.display_name}
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {r.email ?? "—"}
+                          </td>
+                          <td className="px-3 py-2">
+                            <Badge
+                              variant={
+                                r.status === "approved"
+                                  ? "default"
+                                  : r.status === "rejected"
+                                    ? "destructive"
+                                    : "secondary"
+                              }
+                            >
+                              {r.status}
+                            </Badge>
+                          </td>
+                          <td className="max-w-48 truncate px-3 py-2 text-muted-foreground">
+                            {r.rejection_reason ?? "—"}
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {r.decided_at
+                              ? new Date(r.decided_at).toLocaleString()
+                              : "—"}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <div className="inline-flex gap-1">
+                              {status === "pending" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    disabled={busyId !== null}
+                                    onClick={() => {
+                                      setReason("");
+                                      setDecide({
+                                        row: r,
+                                        decision: "approved",
+                                      });
+                                    }}
+                                  >
+                                    <UserCheck className="mr-1 h-4 w-4" />
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    disabled={busyId !== null}
+                                    onClick={() => {
+                                      setReason("");
+                                      setDecide({
+                                        row: r,
+                                        decision: "rejected",
+                                      });
+                                    }}
+                                  >
+                                    <UserX className="mr-1 h-4 w-4" />
+                                    Reject
+                                  </Button>
+                                </>
+                              )}
+                              {status === "approved" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={busyId !== null}
+                                  onClick={() => {
+                                    setReason("");
+                                    setDecide({
+                                      row: r,
+                                      decision: "rejected",
+                                    });
+                                  }}
+                                >
+                                  <UserX className="mr-1 h-4 w-4" />
+                                  Reject
+                                </Button>
+                              )}
+                              {status === "rejected" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={busyId !== null}
+                                  onClick={() => {
+                                    setReason("");
+                                    setDecide({
+                                      row: r,
+                                      decision: "approved",
+                                    });
+                                  }}
+                                >
+                                  <UserCheck className="mr-1 h-4 w-4" />
+                                  Approve
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </TabsContent>
+          ),
+        )}
+      </Tabs>
+
+      <AlertDialog
+        open={decide !== null}
+        onOpenChange={(open) => {
+          if (!open && busyId === null) {
+            setDecide(null);
+            setReason("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {decide?.decision === "approved"
+                ? "Approve this registration?"
+                : "Reject this registration?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {decide?.decision === "approved" ? (
+                <>
+                  <span className="font-semibold text-foreground">
+                    {decide.row.display_name}
+                  </span>{" "}
+                  will be allowed to submit ballots.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-foreground">
+                    {decide?.row.display_name}
+                  </span>{" "}
+                  will be blocked from voting. They cannot reapply from the app
+                  — only an admin can reverse this.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {decide?.decision === "rejected" && (
+            <div className="space-y-2">
+              <Label htmlFor="reject-reason">
+                Reason (optional, shown to the user)
+              </Label>
+              <Textarea
+                id="reject-reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. Suspicious activity"
+                rows={3}
+              />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busyId !== null}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busyId !== null}
+              className={
+                decide?.decision === "rejected"
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : undefined
+              }
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmDecide();
+              }}
+            >
+              {busyId !== null
+                ? "Saving…"
+                : decide?.decision === "approved"
+                  ? "Approve"
+                  : "Reject"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </section>
   );
 }
 
