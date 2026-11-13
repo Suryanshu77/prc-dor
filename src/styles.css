@@ -234,6 +234,17 @@
     box-shadow: 0 0 0 12px transparent;
   }
 }
+@keyframes live-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.7);
+  }
+}
 
 @utility animate-float {
   animation: float 4s ease-in-out infinite;
@@ -244,6 +255,9 @@
 @utility animate-gold-pulse {
   animation: gold-pulse 2.5s ease-out infinite;
 }
+@utility animate-live-dot {
+  animation: live-dot 1.2s ease-in-out infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .prc-dor-winner-popup,
@@ -251,7 +265,9 @@
   .prc-dor-intro-popup,
   .prc-dor-intro-popup *,
   .prc-countdown-popover,
-  .prc-countdown-popover * {
+  .prc-countdown-popover *,
+  .live-badge,
+  .live-badge * {
     animation: none !important;
     transition: none !important;
   }

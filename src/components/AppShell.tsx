@@ -22,6 +22,9 @@ import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { CountdownWidget } from "@/components/CountdownWidget";
+import { LiveBadge } from "@/components/LiveBadge";
+import { useVotingLiveStatus } from "@/lib/use-voting-live";
+import type { VotingLiveStatus } from "@/lib/voting-live";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,13 +39,20 @@ interface NavItem {
   label: string;
   icon: typeof Home;
   adminOnly?: boolean;
+  /** Shows a LIVE badge while this voting status flag is true. */
+  liveKey?: keyof VotingLiveStatus;
 }
 
 const NAV: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: Home },
   { to: "/players", label: "Players", icon: Users },
-  { to: "/vote", label: "Vote", icon: Vote },
-  { to: "/vote-special", label: "Special Awards", icon: Award },
+  { to: "/vote", label: "Ballon d'Or", icon: Vote, liveKey: "ballonDorLive" },
+  {
+    to: "/vote-special",
+    label: "Special Awards",
+    icon: Award,
+    liveKey: "specialAwardsLive",
+  },
   { to: "/results", label: "Results", icon: Trophy },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/hall-of-fame", label: "Hall of Fame", icon: Crown },
@@ -54,6 +64,7 @@ const NAV: NavItem[] = [
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, isAdmin, signOut } = useAuth();
   const profileQ = useProfile();
+  const votingLive = useVotingLiveStatus();
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const profile = profileQ.data;
@@ -106,7 +117,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  {item.label}
+                  <span className="flex items-center gap-2">
+                    {item.label}
+                    {item.liveKey && votingLive[item.liveKey] ? (
+                      <LiveBadge />
+                    ) : null}
+                  </span>
                 </Link>
               );
             })}
