@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { z } from "zod";
@@ -6,6 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/use-profile";
+import { avatarFileError, useSignedUrl } from "@/lib/avatars";
+import {
+  FAVOURITE_MOMENT_MAX,
+  FOOTBALL_CLUBS,
+  FOOTBALL_LEAGUES,
+  FOOTBALL_NATIONS,
+  FOOTBALL_PLAYERS,
+} from "@/lib/football-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,10 +25,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox, ComboboxField } from "@/components/ui/combobox";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
+import { FollowRequestsPanel } from "@/components/profile/FollowRequestsPanel";
 import { toast } from "sonner";
-import { AtSign, Hash, Mail, Pencil, ShieldCheck } from "lucide-react";
+import {
+  AtSign,
+  Calendar,
+  Flag,
+  Hash,
+  Image as ImageIcon,
+  Mail,
+  Pencil,
+  Shield,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Trophy,
+} from "lucide-react";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 // Profile queries never select `email` (private); the form renders the
@@ -36,8 +59,14 @@ const POSITIONS: Position[] = [
   "Striker",
 ];
 
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+// Mirrors the profiles_username_format CHECK and the normalize trigger, so
+// an invalid handle is stopped in the form instead of by a database error.
+const USERNAME_RE = /^[a-z0-9_]{3,24}$/;
+const USERNAME_HINT = "3–24 characters: a–z, 0–9 and underscores.";
+
+function normalizeUsername(raw: string) {
+  return raw.toLowerCase().replace(/[^a-z0-9_]/g, "");
+}
 
 const searchSchema = z.object({
   edit: z.boolean().optional(),
@@ -61,6 +90,11 @@ function ProfilePage() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
+  const [banner, setBanner] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [removeBanner, setRemoveBanner] = useState(false);
+
+  const bannerUrl = useSignedUrl(form?.banner_image);
 
   useEffect(() => {
     if (profileQ.data) {
@@ -68,14 +102,18 @@ function ProfilePage() {
       setPhoto(null);
       setPhotoPreview(null);
       setRemovePhoto(false);
+      setBanner(null);
+      setBannerPreview(null);
+      setRemoveBanner(false);
     }
   }, [profileQ.data]);
 
   useEffect(() => {
     return () => {
       if (photoPreview) URL.revokeObjectURL(photoPreview);
+      if (bannerPreview) URL.revokeObjectURL(bannerPreview);
     };
-  }, [photoPreview]);
+  }, [photoPreview, bannerPreview]);
 
   if (profileQ.isLoading && !form) {
     return (
@@ -93,12 +131,9 @@ function ProfilePage() {
 
   function pickPhoto(file: File | null) {
     if (!file) return;
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      toast.error("Please choose a JPG, PNG or WebP image.");
-      return;
-    }
-    if (file.size > MAX_PHOTO_BYTES) {
-      toast.error("Image must be smaller than 5 MB.");
+    const invalid = avatarFileError(file);
+    if (invalid) {
+      toast.error(invalid);
       return;
     }
     if (photoPreview) URL.revokeObjectURL(photoPreview);
@@ -107,10 +142,28 @@ function ProfilePage() {
     setRemovePhoto(false);
   }
 
+  function pickBanner(file: File | null) {
+    if (!file) return;
+    const invalid = avatarFileError(file);
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    setBanner(file);
+    setBannerPreview(URL.createObjectURL(file));
+    setRemoveBanner(false);
+  }
+
   async function save() {
     if (!form || !user) return;
     if (form.full_name.trim().length < 2) {
       toast.error("Full name must be at least 2 characters.");
+      return;
+    }
+    const username = normalizeUsername(form.username ?? "");
+    if (!USERNAME_RE.test(username)) {
+      toast.error(`Username must match ${USERNAME_HINT}`);
       return;
     }
     if (form.bio && form.bio.trim().length > 300) {
@@ -119,6 +172,15 @@ function ProfilePage() {
     }
     if (form.social_handle && form.social_handle.trim().length > 60) {
       toast.error("Social handle must be under 60 characters.");
+      return;
+    }
+    if (
+      form.favourite_moment &&
+      form.favourite_moment.length > FAVOURITE_MOMENT_MAX
+    ) {
+      toast.error(
+        `Favourite moment must be under ${FAVOURITE_MOMENT_MAX} characters.`,
+      );
       return;
     }
 
@@ -150,10 +212,40 @@ function ProfilePage() {
       imagePath = path;
     }
 
+    // Banner lives in the same private `avatars` bucket under a distinct
+    // file name so it never collides with the avatar object.
+    let bannerPath = form.banner_image;
+    if (removeBanner) {
+      const current = form.banner_image;
+      if (current && !current.startsWith("http")) {
+        await supabase.storage.from("avatars").remove([current]);
+      }
+      bannerPath = null;
+    } else if (banner) {
+      const path = `${user.id}/banner.${photoExt(banner)}`;
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(path, banner, {
+          upsert: true,
+          contentType: banner.type,
+        });
+      if (error) {
+        setBusy(false);
+        toast.error(error.message);
+        return;
+      }
+      const current = form.banner_image;
+      if (current && !current.startsWith("http") && current !== path) {
+        await supabase.storage.from("avatars").remove([current]);
+      }
+      bannerPath = path;
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update({
         full_name: form.full_name.trim(),
+        username,
         nickname: form.nickname?.trim() || null,
         age: form.age ?? null,
         position: form.position ?? null,
@@ -161,17 +253,29 @@ function ProfilePage() {
         bio: form.bio?.trim() || null,
         social_handle: form.social_handle?.trim() || null,
         profile_image: imagePath,
+        banner_image: bannerPath,
+        favourite_club: form.favourite_club?.trim() || null,
+        favourite_player: form.favourite_player?.trim() || null,
+        favourite_national_team: form.favourite_national_team?.trim() || null,
+        favourite_league: form.favourite_league?.trim() || null,
+        favourite_moment: form.favourite_moment?.trim() || null,
       })
       .eq("id", user.id);
 
     setBusy(false);
     if (error) {
+      // 23505 = unique_violation on lower(username).
+      if (error.code === "23505") {
+        toast.error("That username is already taken.");
+        return;
+      }
       toast.error(error.message);
       return;
     }
     toast.success("Profile updated");
     qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["players"] });
+    qc.invalidateQueries({ queryKey: ["follow-state"] });
     navigate({ to: "/profile" });
   }
 
@@ -240,7 +344,88 @@ function ProfilePage() {
             </div>
           </div>
 
-          <div className="grid gap-4">
+          <div className="mt-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="relative h-20 w-full shrink-0 overflow-hidden rounded-lg bg-secondary sm:w-56">
+                {!removeBanner && (bannerPreview || bannerUrl) && (
+                  <img
+                    src={bannerPreview ?? bannerUrl ?? ""}
+                    alt="Profile banner preview"
+                    className="h-full w-full object-cover"
+                  />
+                )}
+                {removeBanner || (!bannerPreview && !bannerUrl) ? (
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                    {removeBanner ? "Banner will be removed" : "No banner yet"}
+                  </div>
+                ) : null}
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <label htmlFor="banner-input" className="cursor-pointer">
+                      <ImageIcon className="mr-2 h-4 w-4" /> Change banner
+                    </label>
+                  </Button>
+                  {!removeBanner && form.banner_image && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        setBanner(null);
+                        setBannerPreview(null);
+                        setRemoveBanner(true);
+                      }}
+                    >
+                      Remove banner
+                    </Button>
+                  )}
+                </div>
+                <Input
+                  id="banner-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => pickBanner(e.target.files?.[0] ?? null)}
+                />
+                {banner && (
+                  <div className="text-xs text-muted-foreground">
+                    {banner.name} · {(banner.size / (1024 * 1024)).toFixed(1)}{" "}
+                    MB — save to apply
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Shown behind your header. JPG, PNG or WebP, up to 5 MB.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 border-t border-border/50 pt-6">
+            <Row label="Username">
+              <div className="flex items-center gap-2">
+                <AtSign className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Input
+                  value={form.username ?? ""}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      username: normalizeUsername(e.target.value),
+                    })
+                  }
+                  placeholder="e.g. ronaldo_7"
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={24}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {USERNAME_HINT} This is the link to your public profile.
+              </p>
+            </Row>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <Row label="Full name">
                 <Input
@@ -335,6 +520,57 @@ function ProfilePage() {
                 Email is managed by your account and can&apos;t be changed here.
               </p>
             </Row>
+
+            <div className="grid gap-4 border-t border-border/50 pt-4 sm:grid-cols-2">
+              <ComboboxField label="Favourite club">
+                <Combobox
+                  value={form.favourite_club}
+                  onChange={(v) => setForm({ ...form, favourite_club: v })}
+                  options={FOOTBALL_CLUBS}
+                  placeholder="Search clubs…"
+                />
+              </ComboboxField>
+              <ComboboxField label="Favourite league">
+                <Combobox
+                  value={form.favourite_league}
+                  onChange={(v) => setForm({ ...form, favourite_league: v })}
+                  options={FOOTBALL_LEAGUES}
+                  placeholder="Search leagues…"
+                />
+              </ComboboxField>
+              <ComboboxField label="National team">
+                <Combobox
+                  value={form.favourite_national_team}
+                  onChange={(v) =>
+                    setForm({ ...form, favourite_national_team: v })
+                  }
+                  options={FOOTBALL_NATIONS}
+                  placeholder="Search nations…"
+                />
+              </ComboboxField>
+              <ComboboxField label="Favourite player">
+                <Combobox
+                  value={form.favourite_player}
+                  onChange={(v) => setForm({ ...form, favourite_player: v })}
+                  options={FOOTBALL_PLAYERS}
+                  placeholder="Search players…"
+                />
+              </ComboboxField>
+            </div>
+            <Row label="Favourite football moment">
+              <Textarea
+                rows={3}
+                value={form.favourite_moment ?? ""}
+                onChange={(e) =>
+                  setForm({ ...form, favourite_moment: e.target.value })
+                }
+                maxLength={FAVOURITE_MOMENT_MAX}
+                placeholder="The goal, the save, the night you'll never forget…"
+              />
+              <p className="text-xs text-muted-foreground">
+                {form.favourite_moment?.length ?? 0}/{FAVOURITE_MOMENT_MAX}
+              </p>
+            </Row>
           </div>
 
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -364,7 +600,16 @@ function ProfilePage() {
         <p className="text-muted-foreground">Your PRC D'or identity.</p>
       </header>
 
-      <div className="glass-strong rounded-2xl p-6 md:p-8">
+      <div className="glass-strong overflow-hidden rounded-2xl p-6 md:p-8">
+        {bannerUrl && (
+          <div className="-mx-6 -mt-6 mb-6 h-28 md:-mx-8 md:-mt-8">
+            <img
+              src={bannerUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          </div>
+        )}
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
           <PlayerAvatar
             path={form.profile_image}
@@ -382,6 +627,10 @@ function ProfilePage() {
                 "{form.nickname}"
               </div>
             )}
+            <div className="mt-1 flex items-center justify-center gap-1 text-muted-foreground sm:justify-start">
+              <AtSign className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="text-sm">{form.username}</span>
+            </div>
             <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
               {form.position && (
                 <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
@@ -393,7 +642,18 @@ function ProfilePage() {
                   #{form.jersey_number}
                 </span>
               )}
+              <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
+                <Calendar className="h-3 w-3" aria-hidden="true" /> Joined{" "}
+                {joinedLabel(form.created_at)}
+              </span>
             </div>
+            <Link
+              to="/players/$username"
+              params={{ username: form.username }}
+              className="mt-3 inline-flex items-center gap-1 text-sm text-gold hover:underline"
+            >
+              View public profile →
+            </Link>
           </div>
           <Button
             onClick={() => navigate({ to: "/profile", search: { edit: true } })}
@@ -427,6 +687,8 @@ function ProfilePage() {
             {user?.email || "—"}
           </InfoRow>
         </dl>
+
+        <FavouritesView profile={form} />
       </div>
 
       <div className="glass-strong rounded-2xl p-6 md:p-8">
@@ -439,6 +701,8 @@ function ProfilePage() {
         </p>
         <ChangePasswordForm />
       </div>
+
+      <FollowRequestsPanel />
     </div>
   );
 }
@@ -447,6 +711,79 @@ function photoExt(file: File) {
   const m = file.name.match(/\.([a-z0-9]+)$/i);
   const ext = (m?.[1] ?? file.type.split("/")[1] ?? "jpg").toLowerCase();
   return ext === "jpeg" ? "jpg" : ext;
+}
+
+/** "November 2026" for the Joined pill. */
+function joinedLabel(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+const FAVOURITE_FIELDS: {
+  key:
+    | "favourite_club"
+    | "favourite_national_team"
+    | "favourite_league"
+    | "favourite_player";
+  label: string;
+  icon: typeof Hash;
+}[] = [
+  { key: "favourite_club", label: "Favourite club", icon: Shield },
+  { key: "favourite_national_team", label: "National team", icon: Flag },
+  { key: "favourite_league", label: "Favourite league", icon: Trophy },
+  { key: "favourite_player", label: "Favourite player", icon: Star },
+];
+
+function FavouritesView({ profile }: { profile: ProfileForm }) {
+  const filled = FAVOURITE_FIELDS.filter((f) => profile[f.key]);
+  if (filled.length === 0 && !profile.favourite_moment) return null;
+
+  return (
+    <div className="mt-6 border-t border-border/50 pt-6">
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-gold" aria-hidden="true" />
+        <h2 className="font-display text-xl text-foreground">
+          Football favourites
+        </h2>
+      </div>
+      <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+        {filled.map((entry) => (
+          <div key={entry.key} className="flex items-start gap-3">
+            <entry.icon
+              className="mt-0.5 h-4 w-4 shrink-0 text-gold"
+              aria-hidden="true"
+            />
+            <div>
+              <dt className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                {entry.label}
+              </dt>
+              <dd className="mt-0.5 text-sm">{profile[entry.key]}</dd>
+            </div>
+          </div>
+        ))}
+        {profile.favourite_moment && (
+          <div className="flex items-start gap-3 sm:col-span-2">
+            <Sparkles
+              className="mt-0.5 h-4 w-4 shrink-0 text-gold"
+              aria-hidden="true"
+            />
+            <div>
+              <dt className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                Favourite football moment
+              </dt>
+              <dd className="mt-0.5 text-sm leading-relaxed">
+                {profile.favourite_moment}
+              </dd>
+            </div>
+          </div>
+        )}
+      </dl>
+    </div>
+  );
 }
 
 function InfoRow({

@@ -14,6 +14,7 @@ type AdminNotification =
 
 interface ProfileMeta {
   id: string;
+  username: string;
   full_name: string;
   nickname: string | null;
   profile_image: string | null;
@@ -60,7 +61,7 @@ export default function AdminNotifications() {
       if (ids.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, full_name, nickname, profile_image")
+          .select("id, username, full_name, nickname, profile_image")
           .in("id", ids);
         profileMap = new Map(
           (profiles ?? []).map((p) => [p.id, p as ProfileMeta]),
@@ -98,7 +99,7 @@ export default function AdminNotifications() {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
-  async function openNotification(n: AdminNotification) {
+  async function openNotification(n: EnrichedNotification) {
     if (!n.read_at) {
       const { error } = await supabase
         .from("admin_notifications")
@@ -121,7 +122,16 @@ export default function AdminNotifications() {
       navigate({ to: "/admin", search: { reg: "pending" } });
       return;
     }
-    navigate({ to: "/players/$id", params: { id: n.user_id } });
+    // Player profiles are addressed by username; fall back to the squad list
+    // when the profile row (and therefore its handle) is gone.
+    if (n.profile?.username) {
+      navigate({
+        to: "/players/$username",
+        params: { username: n.profile.username },
+      });
+      return;
+    }
+    navigate({ to: "/players" });
   }
 
   return (

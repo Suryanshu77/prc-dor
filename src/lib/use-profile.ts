@@ -8,7 +8,7 @@ import { toast } from "sonner";
 // Shared by every query keyed ["profile", <id>] so the React Query cache
 // never receives a row shape missing fields a consumer relies on.
 export const PROFILE_COLUMNS =
-  "id, full_name, nickname, age, position, jersey_number, profile_image, bio, social_handle, created_at, updated_at";
+  "id, full_name, nickname, age, position, jersey_number, profile_image, bio, social_handle, username, banner_image, favourite_club, favourite_player, favourite_national_team, favourite_league, favourite_moment, created_at, updated_at";
 
 export function useProfile() {
   const { user } = useAuth();

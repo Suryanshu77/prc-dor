@@ -3,6 +3,7 @@ import { useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { avatarFileError } from "@/lib/avatars";
 import { Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -181,6 +182,18 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
   const [busy, setBusy] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
 
+  // Same rules as the profile editor (shared avatarFileError): reject
+  // non-JPG/PNG/WebP files and anything over 5 MB before upload.
+  function pickPhoto(file: File | null) {
+    if (!file) return;
+    const invalid = avatarFileError(file);
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
+    setPhoto(file);
+  }
+
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
@@ -272,8 +285,8 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
         <Label>Profile photo</Label>
         <Input
           type="file"
-          accept="image/*"
-          onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+          accept="image/png,image/jpeg,image/webp"
+          onChange={(e) => pickPhoto(e.target.files?.[0] ?? null)}
         />
       </div>
       <Field label="Email" name="email" type="email" required />

@@ -78,10 +78,27 @@ test("migration file name follows the convention and lands last in history", () 
   const files = readdirSync(MIGRATIONS_DIR)
     .filter((f) => f.endsWith(".sql"))
     .sort();
-  assert.equal(
-    files[files.length - 1],
-    MIGRATION_NAME,
-    "the variable-ballot migration must be the newest so it wins the CREATE OR REPLACE race",
+  // The invariant is not "newest overall" — later, unrelated migrations (e.g.
+  // the profile directory) land after this one. What must hold is that no
+  // other migration redefining submit_special_ballot comes later, otherwise
+  // its CREATE OR REPLACE would win the race over the variable-ballot body.
+  const rivals = files.filter(
+    (f) =>
+      f !== MIGRATION_NAME &&
+      /CREATE OR REPLACE FUNCTION public\.submit_special_ballot/.test(
+        readFileSync(path.join(MIGRATIONS_DIR, f), "utf8"),
+      ),
+  );
+  for (const rival of rivals) {
+    assert.ok(
+      files.indexOf(rival) < files.indexOf(MIGRATION_NAME),
+      `the variable-ballot migration must come after ${rival} so it wins the CREATE OR REPLACE race`,
+    );
+  }
+  assert.ok(
+    files.indexOf(MIGRATION_NAME) >
+      files.indexOf("20261025120000_special_awards.sql"),
+    "must apply after the special-awards migration it extends",
   );
 });
 

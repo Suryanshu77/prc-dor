@@ -202,11 +202,11 @@ test("static: signature, security, tie-breaking, grants and the visibility gate 
 
 test("static: the player profile page keeps consuming the same RPC shape", () => {
   const page = readFileSync(
-    path.join(ROOT, "src/routes/_authenticated/players.$id.tsx"),
+    path.join(ROOT, "src/routes/_authenticated/players/$username.tsx"),
     "utf8",
   );
   assert.match(page, /supabase\.rpc\("get_player_period_rank", \{/);
-  assert.match(page, /_player_id: id,/);
+  assert.match(page, /_player_id: p!\.id,/);
   assert.match(page, /_period_id: activePeriodQ\.data!\.id,/);
   assert.match(page, /return \(data \?\? \[\]\)\[0\] \?\? null;/);
   assert.match(page, /rankData\?\.rank \? `#\$\{rankData\.rank\}`/);
@@ -274,8 +274,8 @@ function submit(period, ids) {
   ]);
 }
 
-// The RPC exactly as players.$id.tsx calls it, first row only. Callers must
-// have selected a session user (admin for hidden periods).
+// The RPC exactly as players/$username.tsx calls it, first row only. Callers
+// must have selected a session user (admin for hidden periods).
 async function periodRank(player, period = period2026) {
   const r = await db.query(
     "SELECT * FROM public.get_player_period_rank($1, $2)",

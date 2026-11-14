@@ -41,6 +41,13 @@ test("PROFILE_COLUMNS excludes email and covers the profile form fields", () => 
     "profile_image",
     "bio",
     "social_handle",
+    "username",
+    "banner_image",
+    "favourite_club",
+    "favourite_player",
+    "favourite_national_team",
+    "favourite_league",
+    "favourite_moment",
     "created_at",
     "updated_at",
   ]) {

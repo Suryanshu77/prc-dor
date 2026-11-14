@@ -135,6 +135,39 @@ export type Database = {
           },
         ];
       };
+      follow_requests: {
+        Row: {
+          created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          followee_id: string;
+          follower_id: string;
+          id: string;
+          status: Database["public"]["Enums"]["follow_request_status"];
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          followee_id: string;
+          follower_id: string;
+          id?: string;
+          status?: Database["public"]["Enums"]["follow_request_status"];
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          followee_id?: string;
+          follower_id?: string;
+          id?: string;
+          status?: Database["public"]["Enums"]["follow_request_status"];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       hall_of_fame: {
         Row: {
           created_at: string;
@@ -186,9 +219,15 @@ export type Database = {
       profiles: {
         Row: {
           age: number | null;
+          banner_image: string | null;
           bio: string | null;
           created_at: string;
           email: string | null;
+          favourite_club: string | null;
+          favourite_league: string | null;
+          favourite_moment: string | null;
+          favourite_national_team: string | null;
+          favourite_player: string | null;
           full_name: string;
           id: string;
           jersey_number: number | null;
@@ -197,12 +236,19 @@ export type Database = {
           profile_image: string | null;
           social_handle: string | null;
           updated_at: string;
+          username: string;
         };
         Insert: {
           age?: number | null;
+          banner_image?: string | null;
           bio?: string | null;
           created_at?: string;
           email?: string | null;
+          favourite_club?: string | null;
+          favourite_league?: string | null;
+          favourite_moment?: string | null;
+          favourite_national_team?: string | null;
+          favourite_player?: string | null;
           full_name: string;
           id: string;
           jersey_number?: number | null;
@@ -211,12 +257,19 @@ export type Database = {
           profile_image?: string | null;
           social_handle?: string | null;
           updated_at?: string;
+          username: string;
         };
         Update: {
           age?: number | null;
+          banner_image?: string | null;
           bio?: string | null;
           created_at?: string;
           email?: string | null;
+          favourite_club?: string | null;
+          favourite_league?: string | null;
+          favourite_moment?: string | null;
+          favourite_national_team?: string | null;
+          favourite_player?: string | null;
           full_name?: string;
           id?: string;
           jersey_number?: number | null;
@@ -225,6 +278,7 @@ export type Database = {
           profile_image?: string | null;
           social_handle?: string | null;
           updated_at?: string;
+          username?: string;
         };
         Relationships: [];
       };
@@ -732,6 +786,10 @@ export type Database = {
         };
         Returns: undefined;
       };
+      decide_follow: {
+        Args: { _request_id: string; _decision: string };
+        Returns: Database["public"]["Enums"]["follow_request_status"];
+      };
       get_active_period_analytics: {
         Args: never;
         Returns: {
@@ -815,6 +873,14 @@ export type Database = {
         Args: { _award_id: string };
         Returns: boolean;
       };
+      remove_follow: {
+        Args: { _followee: string };
+        Returns: undefined;
+      };
+      request_follow: {
+        Args: { _followee: string };
+        Returns: Database["public"]["Enums"]["follow_request_status"];
+      };
       submit_main_ballot: {
         Args: { _period_id: string; _player_ids: string[] };
         Returns: undefined;
@@ -826,6 +892,7 @@ export type Database = {
     };
     Enums: {
       app_role: "admin" | "user";
+      follow_request_status: "pending" | "approved" | "rejected";
       player_position:
         "Goalkeeper" | "Defender" | "Midfielder" | "Winger" | "Striker";
       voter_approval_status: "pending" | "approved" | "rejected";
@@ -957,6 +1024,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      follow_request_status: ["pending", "approved", "rejected"],
       player_position: [
         "Goalkeeper",
         "Defender",

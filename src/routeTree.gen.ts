@@ -18,13 +18,13 @@ import { Route as AuthenticatedVoteSpecialRouteImport } from './routes/_authenti
 import { Route as AuthenticatedVoteRouteImport } from './routes/_authenticated/vote'
 import { Route as AuthenticatedResultsRouteImport } from './routes/_authenticated/results'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
-import { Route as AuthenticatedPlayersRouteImport } from './routes/_authenticated/players'
 import { Route as AuthenticatedHallOfFameRouteImport } from './routes/_authenticated/hall-of-fame'
 import { Route as AuthenticatedGameRouteImport } from './routes/_authenticated/game'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedPlayersIdRouteImport } from './routes/_authenticated/players.$id'
+import { Route as AuthenticatedPlayersIndexRouteImport } from './routes/_authenticated/players/index'
+import { Route as AuthenticatedPlayersUsernameRouteImport } from './routes/_authenticated/players/$username'
 
 const TheCreatorRoute = TheCreatorRouteImport.update({
   id: '/the-creator',
@@ -71,11 +71,6 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedPlayersRoute = AuthenticatedPlayersRouteImport.update({
-  id: '/players',
-  path: '/players',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedHallOfFameRoute = AuthenticatedHallOfFameRouteImport.update({
   id: '/hall-of-fame',
   path: '/hall-of-fame',
@@ -101,11 +96,18 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedPlayersIdRoute = AuthenticatedPlayersIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedPlayersRoute,
-} as any)
+const AuthenticatedPlayersIndexRoute =
+  AuthenticatedPlayersIndexRouteImport.update({
+    id: '/players/',
+    path: '/players/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPlayersUsernameRoute =
+  AuthenticatedPlayersUsernameRouteImport.update({
+    id: '/players/$username',
+    path: '/players/$username',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,12 +119,12 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/game': typeof AuthenticatedGameRoute
   '/hall-of-fame': typeof AuthenticatedHallOfFameRoute
-  '/players': typeof AuthenticatedPlayersRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/results': typeof AuthenticatedResultsRoute
   '/vote': typeof AuthenticatedVoteRoute
   '/vote-special': typeof AuthenticatedVoteSpecialRoute
-  '/players/$id': typeof AuthenticatedPlayersIdRoute
+  '/players/$username': typeof AuthenticatedPlayersUsernameRoute
+  '/players/': typeof AuthenticatedPlayersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,12 +136,12 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/game': typeof AuthenticatedGameRoute
   '/hall-of-fame': typeof AuthenticatedHallOfFameRoute
-  '/players': typeof AuthenticatedPlayersRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/results': typeof AuthenticatedResultsRoute
   '/vote': typeof AuthenticatedVoteRoute
   '/vote-special': typeof AuthenticatedVoteSpecialRoute
-  '/players/$id': typeof AuthenticatedPlayersIdRoute
+  '/players/$username': typeof AuthenticatedPlayersUsernameRoute
+  '/players': typeof AuthenticatedPlayersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -153,12 +155,12 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/game': typeof AuthenticatedGameRoute
   '/_authenticated/hall-of-fame': typeof AuthenticatedHallOfFameRoute
-  '/_authenticated/players': typeof AuthenticatedPlayersRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/results': typeof AuthenticatedResultsRoute
   '/_authenticated/vote': typeof AuthenticatedVoteRoute
   '/_authenticated/vote-special': typeof AuthenticatedVoteSpecialRoute
-  '/_authenticated/players/$id': typeof AuthenticatedPlayersIdRoute
+  '/_authenticated/players/$username': typeof AuthenticatedPlayersUsernameRoute
+  '/_authenticated/players/': typeof AuthenticatedPlayersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -172,12 +174,12 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/game'
     | '/hall-of-fame'
-    | '/players'
     | '/profile'
     | '/results'
     | '/vote'
     | '/vote-special'
-    | '/players/$id'
+    | '/players/$username'
+    | '/players/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -189,12 +191,12 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/game'
     | '/hall-of-fame'
-    | '/players'
     | '/profile'
     | '/results'
     | '/vote'
     | '/vote-special'
-    | '/players/$id'
+    | '/players/$username'
+    | '/players'
   id:
     | '__root__'
     | '/'
@@ -207,12 +209,12 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/game'
     | '/_authenticated/hall-of-fame'
-    | '/_authenticated/players'
     | '/_authenticated/profile'
     | '/_authenticated/results'
     | '/_authenticated/vote'
     | '/_authenticated/vote-special'
-    | '/_authenticated/players/$id'
+    | '/_authenticated/players/$username'
+    | '/_authenticated/players/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -288,13 +290,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/players': {
-      id: '/_authenticated/players'
-      path: '/players'
-      fullPath: '/players'
-      preLoaderRoute: typeof AuthenticatedPlayersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/hall-of-fame': {
       id: '/_authenticated/hall-of-fame'
       path: '/hall-of-fame'
@@ -330,26 +325,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/players/$id': {
-      id: '/_authenticated/players/$id'
-      path: '/$id'
-      fullPath: '/players/$id'
-      preLoaderRoute: typeof AuthenticatedPlayersIdRouteImport
-      parentRoute: typeof AuthenticatedPlayersRoute
+    '/_authenticated/players/': {
+      id: '/_authenticated/players/'
+      path: '/players'
+      fullPath: '/players/'
+      preLoaderRoute: typeof AuthenticatedPlayersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/players/$username': {
+      id: '/_authenticated/players/$username'
+      path: '/players/$username'
+      fullPath: '/players/$username'
+      preLoaderRoute: typeof AuthenticatedPlayersUsernameRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
-
-interface AuthenticatedPlayersRouteChildren {
-  AuthenticatedPlayersIdRoute: typeof AuthenticatedPlayersIdRoute
-}
-
-const AuthenticatedPlayersRouteChildren: AuthenticatedPlayersRouteChildren = {
-  AuthenticatedPlayersIdRoute: AuthenticatedPlayersIdRoute,
-}
-
-const AuthenticatedPlayersRouteWithChildren =
-  AuthenticatedPlayersRoute._addFileChildren(AuthenticatedPlayersRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
@@ -357,11 +348,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedGameRoute: typeof AuthenticatedGameRoute
   AuthenticatedHallOfFameRoute: typeof AuthenticatedHallOfFameRoute
-  AuthenticatedPlayersRoute: typeof AuthenticatedPlayersRouteWithChildren
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedResultsRoute: typeof AuthenticatedResultsRoute
   AuthenticatedVoteRoute: typeof AuthenticatedVoteRoute
   AuthenticatedVoteSpecialRoute: typeof AuthenticatedVoteSpecialRoute
+  AuthenticatedPlayersUsernameRoute: typeof AuthenticatedPlayersUsernameRoute
+  AuthenticatedPlayersIndexRoute: typeof AuthenticatedPlayersIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -370,11 +362,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedGameRoute: AuthenticatedGameRoute,
   AuthenticatedHallOfFameRoute: AuthenticatedHallOfFameRoute,
-  AuthenticatedPlayersRoute: AuthenticatedPlayersRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedResultsRoute: AuthenticatedResultsRoute,
   AuthenticatedVoteRoute: AuthenticatedVoteRoute,
   AuthenticatedVoteSpecialRoute: AuthenticatedVoteSpecialRoute,
+  AuthenticatedPlayersUsernameRoute: AuthenticatedPlayersUsernameRoute,
+  AuthenticatedPlayersIndexRoute: AuthenticatedPlayersIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
