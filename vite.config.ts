@@ -33,6 +33,18 @@ export default defineConfig(({ command, mode }) => {
     plugins.push(
       nitro({
         defaultPreset: "cloudflare-module",
+        // Cloudflare's static-asset layer answers Range requests with 200 +
+        // the whole file (no Content-Range/Accept-Ranges), which makes the
+        // browser treat audio as non-seekable and snap every seek back to
+        // 0:00. Route /audio/* through the Worker first so the worker entry
+        // can serve proper 206 Partial Content responses.
+        cloudflare: {
+          wrangler: {
+            assets: {
+              run_worker_first: ["/audio/*"],
+            },
+          },
+        },
       }),
     );
   }
