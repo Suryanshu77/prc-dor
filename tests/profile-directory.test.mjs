@@ -130,10 +130,14 @@ test("migration file name follows the convention and lands after its predecessor
       FILES.indexOf(MIGRATION_NAME),
     "must apply after the voter-approval system",
   );
-  assert.equal(
-    FILES[FILES.length - 1],
-    MIGRATION_NAME,
-    "must be the newest migration",
+  // This migration may be followed only by the additive follow-counts RPC
+  // (20261115000000_follow_counts.sql): it re-uses the profile-directory
+  // helpers but grants no profiles columns and touches no policies.
+  const newer = FILES.slice(FILES.indexOf(MIGRATION_NAME) + 1);
+  assert.deepEqual(
+    newer,
+    ["20261115000000_follow_counts.sql"],
+    "only the follow-counts migration may land after profile-directory",
   );
 });
 

@@ -112,9 +112,59 @@ export function useIncomingFollowRequests() {
   });
 }
 
+/** Approved follower/following totals shown in a profile header. */
+export interface FollowCounts {
+  followers: number;
+  following: number;
+}
+
+/**
+ * Aggregate counts via the get_follow_counts RPC (SECURITY DEFINER,
+ * aggregate-only: no rows or identities leave the database).
+ *   followers = approved rows where this member is the followee
+ *   following = approved rows where this member is the follower
+ * Pending and rejected requests never contribute. Zero counts return 0;
+ * a failure (missing RPC, approval gate, network) is logged and surfaced
+ * as a query error so the UI can show a labelled, retryable error state
+ * instead of a silent placeholder.
+ */
+export function useFollowCounts(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["follow-counts", userId],
+    enabled: !!userId,
+    queryFn: async (): Promise<FollowCounts> => {
+      const { data, error } = await supabase.rpc("get_follow_counts", {
+        _user_id: userId!,
+      });
+      if (error) {
+        // Keep the PostgREST code/message (e.g. PGRST202 "Could not find
+        // the function …") visible in the console so a failed deployment
+        // of the follow-counts migration is diagnosable from the browser.
+        console.error("[follow] failed to load follow counts", error);
+        throw error;
+      }
+      const row = (data ?? [])[0];
+      return {
+        followers: Number(row?.followers ?? 0),
+        following: Number(row?.following ?? 0),
+      };
+    },
+  });
+}
+
 function invalidateFollow(qc: ReturnType<typeof useQueryClient>) {
   void qc.invalidateQueries({ queryKey: ["follow-state"] });
   void qc.invalidateQueries({ queryKey: ["follow-requests"] });
+}
+
+/**
+ * Counts change only when an approved relationship is created or removed:
+ * accepting a request, unfollowing, or withdrawing an already-approved row.
+ * Sending or declining a pending request never does, so those paths skip
+ * this (no pointless refetch).
+ */
+function invalidateFollowCounts(qc: ReturnType<typeof useQueryClient>) {
+  void qc.invalidateQueries({ queryKey: ["follow-counts"] });
 }
 
 export function useRequestFollow() {
@@ -162,6 +212,8 @@ export function useDecideFollow() {
     },
     onSuccess: (_status, { decision }) => {
       invalidateFollow(qc);
+      // Only an acceptance changes the counts; declining leaves them alone.
+      if (decision === "approved") invalidateFollowCounts(qc);
       toast.success(
         decision === "approved" ? "Follow approved." : "Request declined.",
       );
@@ -183,6 +235,8 @@ export function useRemoveFollow() {
     },
     onSuccess: () => {
       invalidateFollow(qc);
+      // Unfollow (and withdrawing an approved row) removes a relationship.
+      invalidateFollowCounts(qc);
     },
     onError: (error) => {
       toast.error(followErrorMessage(error, "Couldn't update the follow."));

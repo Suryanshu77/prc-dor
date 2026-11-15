@@ -33,7 +33,7 @@ export function FollowRequestsPanel() {
         )}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        Members asking to follow you. Approving lets them follow you; declining
+        Members asking to follow you. Accepting lets them follow you; declining
         dismisses the request.
       </p>
 
@@ -42,16 +42,18 @@ export function FollowRequestsPanel() {
       )}
 
       {requests.length > 0 && (
-        <ul className="mt-4 divide-y divide-border/50">
+        <ul className="mt-4 grid gap-3">
           {requests.map((request) => {
             const follower = request.follower;
             const name = follower
               ? follower.nickname || follower.full_name
               : "Someone";
+            const deciding =
+              decide.isPending && decide.variables?.requestId === request.id;
             return (
               <li
                 key={request.id}
-                className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-xl border border-border/60 bg-secondary/30 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <PlayerAvatar
@@ -84,7 +86,7 @@ export function FollowRequestsPanel() {
                   <Button
                     type="button"
                     size="sm"
-                    disabled={decide.isPending}
+                    disabled={deciding}
                     className="bg-gold-gradient text-background hover:opacity-90"
                     onClick={() =>
                       decide.mutate({
@@ -94,13 +96,15 @@ export function FollowRequestsPanel() {
                     }
                   >
                     <UserCheck className="mr-1.5 h-3.5 w-3.5" />
-                    Approve
+                    {deciding && decide.variables?.decision === "approved"
+                      ? "Accepting…"
+                      : "Accept"}
                   </Button>
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    disabled={decide.isPending}
+                    disabled={deciding}
                     onClick={() =>
                       decide.mutate({
                         requestId: request.id,
@@ -109,7 +113,9 @@ export function FollowRequestsPanel() {
                     }
                   >
                     <UserX className="mr-1.5 h-3.5 w-3.5" />
-                    Decline
+                    {deciding && decide.variables?.decision === "rejected"
+                      ? "Declining…"
+                      : "Decline"}
                   </Button>
                 </div>
               </li>

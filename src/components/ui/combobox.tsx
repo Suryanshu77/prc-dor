@@ -15,6 +15,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { FootballImage } from "@/components/FootballImage";
+import type { FootballImageKind } from "@/lib/football-images";
 
 interface ComboboxProps {
   value: string | null;
@@ -26,6 +28,10 @@ interface ComboboxProps {
   allowCustom?: boolean;
   /** Show a "Clear" action so an optional preference can be removed. */
   clearable?: boolean;
+  /** Resolve an image URL for a listed value (crest / flag / portrait). */
+  imageFor?: (value: string) => string | undefined;
+  /** Visual treatment for the images returned by imageFor. */
+  imageKind?: FootballImageKind;
   id?: string;
 }
 
@@ -44,6 +50,8 @@ export function Combobox({
   emptyText = "No matches.",
   allowCustom = true,
   clearable = true,
+  imageFor,
+  imageKind = "club",
   id,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false);
@@ -80,8 +88,18 @@ export function Combobox({
           aria-controls={id ? `${id}-listbox` : undefined}
           className="w-full justify-between font-normal"
         >
-          <span className={cn(!value && "text-muted-foreground")}>
-            {value || placeholder}
+          <span className="flex min-w-0 items-center gap-2">
+            {imageFor && value && imageFor(value) && (
+              <FootballImage
+                src={imageFor(value)}
+                kind={imageKind}
+                alt=""
+                className="h-5 w-5 rounded"
+              />
+            )}
+            <span className={cn("truncate", !value && "text-muted-foreground")}>
+              {value || placeholder}
+            </span>
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -125,6 +143,14 @@ export function Combobox({
                         value === option ? "opacity-100" : "opacity-0",
                       )}
                     />
+                    {imageFor && imageFor(option) && (
+                      <FootballImage
+                        src={imageFor(option)}
+                        kind={imageKind}
+                        alt=""
+                        className="mr-2 h-5 w-5 rounded"
+                      />
+                    )}
                     {option}
                   </CommandItem>
                 ))}

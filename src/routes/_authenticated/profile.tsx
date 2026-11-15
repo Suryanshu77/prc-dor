@@ -14,6 +14,7 @@ import {
   FOOTBALL_NATIONS,
   FOOTBALL_PLAYERS,
 } from "@/lib/football-data";
+import { footballImage, type FootballImageKind } from "@/lib/football-images";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,9 +27,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Combobox, ComboboxField } from "@/components/ui/combobox";
+import { FootballImage } from "@/components/FootballImage";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 import { FollowRequestsPanel } from "@/components/profile/FollowRequestsPanel";
+import { FollowCounts } from "@/components/profile/FollowCounts";
 import { toast } from "sonner";
 import {
   AtSign,
@@ -528,6 +531,8 @@ function ProfilePage() {
                   onChange={(v) => setForm({ ...form, favourite_club: v })}
                   options={FOOTBALL_CLUBS}
                   placeholder="Search clubs…"
+                  imageFor={(v) => footballImage("club", v)}
+                  imageKind="club"
                 />
               </ComboboxField>
               <ComboboxField label="Favourite league">
@@ -536,6 +541,8 @@ function ProfilePage() {
                   onChange={(v) => setForm({ ...form, favourite_league: v })}
                   options={FOOTBALL_LEAGUES}
                   placeholder="Search leagues…"
+                  imageFor={(v) => footballImage("league", v)}
+                  imageKind="league"
                 />
               </ComboboxField>
               <ComboboxField label="National team">
@@ -546,6 +553,8 @@ function ProfilePage() {
                   }
                   options={FOOTBALL_NATIONS}
                   placeholder="Search nations…"
+                  imageFor={(v) => footballImage("nation", v)}
+                  imageKind="nation"
                 />
               </ComboboxField>
               <ComboboxField label="Favourite player">
@@ -554,6 +563,8 @@ function ProfilePage() {
                   onChange={(v) => setForm({ ...form, favourite_player: v })}
                   options={FOOTBALL_PLAYERS}
                   placeholder="Search players…"
+                  imageFor={(v) => footballImage("player", v)}
+                  imageKind="player"
                 />
               </ComboboxField>
             </div>
@@ -647,6 +658,7 @@ function ProfilePage() {
                 {joinedLabel(form.created_at)}
               </span>
             </div>
+            <FollowCounts userId={form.id} className="mt-3" />
             <Link
               to="/players/$username"
               params={{ username: form.username }}
@@ -731,11 +743,32 @@ const FAVOURITE_FIELDS: {
     | "favourite_player";
   label: string;
   icon: typeof Hash;
+  kind: FootballImageKind;
 }[] = [
-  { key: "favourite_club", label: "Favourite club", icon: Shield },
-  { key: "favourite_national_team", label: "National team", icon: Flag },
-  { key: "favourite_league", label: "Favourite league", icon: Trophy },
-  { key: "favourite_player", label: "Favourite player", icon: Star },
+  {
+    key: "favourite_club",
+    label: "Favourite club",
+    icon: Shield,
+    kind: "club",
+  },
+  {
+    key: "favourite_national_team",
+    label: "National team",
+    icon: Flag,
+    kind: "nation",
+  },
+  {
+    key: "favourite_league",
+    label: "Favourite league",
+    icon: Trophy,
+    kind: "league",
+  },
+  {
+    key: "favourite_player",
+    label: "Favourite player",
+    icon: Star,
+    kind: "player",
+  },
 ];
 
 function FavouritesView({ profile }: { profile: ProfileForm }) {
@@ -753,9 +786,13 @@ function FavouritesView({ profile }: { profile: ProfileForm }) {
       <dl className="mt-4 grid gap-4 sm:grid-cols-2">
         {filled.map((entry) => (
           <div key={entry.key} className="flex items-start gap-3">
-            <entry.icon
-              className="mt-0.5 h-4 w-4 shrink-0 text-gold"
-              aria-hidden="true"
+            <FootballImage
+              src={footballImage(entry.kind, profile[entry.key])}
+              kind={entry.kind}
+              alt=""
+              className="mt-0.5 h-10 w-10 rounded-lg"
+              fallbackIcon={entry.icon}
+              fallbackClassName="h-5 w-5"
             />
             <div>
               <dt className="text-xs uppercase tracking-[0.18em] text-muted-foreground">

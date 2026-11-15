@@ -123,8 +123,8 @@ export const FOOTBALL_NATIONS: readonly string[] = [
 ];
 
 export const FOOTBALL_PLAYERS: readonly string[] = [
-  "Lionel Messi",
   "Cristiano Ronaldo",
+  "Lionel Messi",
   "Kylian Mbappe",
   "Erling Haaland",
   "Jude Bellingham",

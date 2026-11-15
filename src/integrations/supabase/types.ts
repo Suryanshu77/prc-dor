@@ -804,6 +804,13 @@ export type Database = {
           total_rankings: number;
         }[];
       };
+      get_follow_counts: {
+        Args: { _user_id: string };
+        Returns: {
+          followers: number;
+          following: number;
+        }[];
+      };
       get_my_approval_status: {
         Args: never;
         Returns: Database["public"]["Enums"]["voter_approval_status"];

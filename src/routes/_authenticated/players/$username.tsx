@@ -5,9 +5,13 @@ import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
 import { PROFILE_COLUMNS } from "@/lib/use-profile";
 import { useSignedUrl } from "@/lib/avatars";
+import { footballImage, type FootballImageKind } from "@/lib/football-images";
+import { cn } from "@/lib/utils";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { FootballImage } from "@/components/FootballImage";
 import { FollowButton } from "@/components/profile/FollowButton";
 import { FollowRequestsPanel } from "@/components/profile/FollowRequestsPanel";
+import { FollowCounts } from "@/components/profile/FollowCounts";
 import {
   ArrowLeft,
   Award,
@@ -138,28 +142,32 @@ function PlayerPage() {
             <img
               src={bannerUrl}
               alt=""
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/30 to-transparent" />
           </div>
         )}
 
-        <div className="p-6 md:p-8">
+        {/* Positioned above the banner: the pulled-up avatar overlaps it on
+            purpose, while the name below never gets painted over by the
+            banner (positioned descendants otherwise stack over static text). */}
+        <div className="relative z-10 p-6 md:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div
-              className={
-                bannerUrl
-                  ? "-mt-16 flex flex-col items-center gap-4 sm:flex-row md:-mt-20"
-                  : "flex flex-col items-center gap-4 sm:flex-row"
-              }
+              className={cn(
+                "flex flex-col items-center gap-4 sm:flex-row",
+                bannerUrl ? "sm:items-start" : "sm:items-center",
+              )}
             >
-              <PlayerAvatar
-                path={p.profile_image}
-                name={displayName}
-                className={`h-28 w-28 ${bannerUrl ? "ring-4 ring-background" : ""}`}
-                ring={!bannerUrl}
-              />
-              <div className="text-center sm:text-left">
+              <div className={cn("shrink-0", bannerUrl && "-mt-16 md:-mt-20")}>
+                <PlayerAvatar
+                  path={p.profile_image}
+                  name={displayName}
+                  className={`h-28 w-28 ${bannerUrl ? "ring-4 ring-background" : ""}`}
+                  ring={!bannerUrl}
+                />
+              </div>
+              <div className="min-w-0 text-center sm:text-left">
                 <div className="text-xs uppercase tracking-[0.2em] text-gold">
                   PRC D&apos;or Player
                 </div>
@@ -177,6 +185,7 @@ function PlayerPage() {
                   {p.age && <Pill>{p.age} yrs</Pill>}
                   <Pill icon={Calendar}>Joined {joined}</Pill>
                 </div>
+                <FollowCounts userId={p.id} className="mt-4" />
               </div>
             </div>
 
@@ -278,11 +287,32 @@ const FAVOURITES: {
     | "favourite_player";
   label: string;
   icon: typeof Shield;
+  kind: FootballImageKind;
 }[] = [
-  { key: "favourite_club", label: "Favourite club", icon: Shield },
-  { key: "favourite_national_team", label: "National team", icon: Flag },
-  { key: "favourite_league", label: "Favourite league", icon: Trophy },
-  { key: "favourite_player", label: "Favourite player", icon: Star },
+  {
+    key: "favourite_club",
+    label: "Favourite club",
+    icon: Shield,
+    kind: "club",
+  },
+  {
+    key: "favourite_national_team",
+    label: "National team",
+    icon: Flag,
+    kind: "nation",
+  },
+  {
+    key: "favourite_league",
+    label: "Favourite league",
+    icon: Trophy,
+    kind: "league",
+  },
+  {
+    key: "favourite_player",
+    label: "Favourite player",
+    icon: Star,
+    kind: "player",
+  },
 ];
 
 function Favourites({ profile }: { profile: ProfileRow }) {
@@ -297,9 +327,13 @@ function Favourites({ profile }: { profile: ProfileRow }) {
       <dl className="mt-4 grid gap-4 sm:grid-cols-2">
         {entries.map((entry) => (
           <div key={entry.key} className="flex items-start gap-3">
-            <entry.icon
-              className="mt-0.5 h-4 w-4 shrink-0 text-gold"
-              aria-hidden="true"
+            <FootballImage
+              src={footballImage(entry.kind, profile[entry.key])}
+              kind={entry.kind}
+              alt=""
+              className="mt-0.5 h-10 w-10 rounded-lg"
+              fallbackIcon={entry.icon}
+              fallbackClassName="h-5 w-5"
             />
             <div>
               <dt className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
