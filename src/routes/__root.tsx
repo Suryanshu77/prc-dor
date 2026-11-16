@@ -13,7 +13,6 @@ import { type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { Toaster } from "@/components/ui/sonner";
-import { PRCDorIntroPopup } from "@/components/PRCDorIntroPopup";
 import { PRCDor2026WinnerPopup } from "@/components/PRCDor2026WinnerPopup";
 import { MusicPlayer } from "@/components/MusicPlayer";
 
@@ -145,20 +144,17 @@ function RootComponent() {
 }
 
 /**
- * Anonymous visitors get the "What is PRC D'OR?" intro first; the 2026 winner
- * celebration is mounted only once a session exists, so the two never overlap.
+ * The 2026 winner celebration is mounted only once a session exists, and is
+ * skipped entirely on the password-reset page so it never obstructs the user.
  */
 function AppOverlays() {
   const { user, loading } = useAuth();
-  // The password reset page must stay unobstructed while the user picks a new
-  // password, so the two promotional dialogs are skipped there.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const onPasswordReset = pathname === "/reset-password";
 
   return (
     <>
       <Toaster theme="dark" position="top-center" richColors />
-      {onPasswordReset ? null : <PRCDorIntroPopup />}
       {!loading && user && !onPasswordReset ? <PRCDor2026WinnerPopup /> : null}
       {/* Mounted once at the root so the soundtrack survives every route change. */}
       <MusicPlayer />

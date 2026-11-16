@@ -17,6 +17,7 @@ import {
   Pencil,
   Award,
   UserRound,
+  Info,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,7 @@ const NAV: NavItem[] = [
   { to: "/hall-of-fame", label: "Hall of Fame", icon: Crown },
   { to: "/game", label: "Game", icon: Gamepad2 },
   { to: "/admin", label: "Admin", icon: Shield, adminOnly: true },
+  { to: "/about", label: "About", icon: Info },
   { to: "/the-creator", label: "The Creator", icon: UserRound },
 ];
 

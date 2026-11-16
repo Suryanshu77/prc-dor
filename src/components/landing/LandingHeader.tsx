@@ -103,10 +103,16 @@ export function LandingHeader() {
         </span>
       </Link>
 
-      <Link to="/auth" search={{ mode: "login" }} className="ld-signin">
-        Sign in
-        <ArrowRight />
-      </Link>
+      <div className="ld-header__actions">
+        <Link to="/about" className="ld-about">
+          About
+        </Link>
+
+        <Link to="/auth" search={{ mode: "login" }} className="ld-signin">
+          Sign in
+          <ArrowRight />
+        </Link>
+      </div>
     </header>
   );
 }

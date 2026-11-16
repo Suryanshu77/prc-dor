@@ -155,8 +155,15 @@ test("PASSWORD_RECOVERY events are handled by the auth provider", () => {
 test("promotional popups never obstruct the reset page", () => {
   const src = read("src/routes/__root.tsx");
   assert.match(src, /onPasswordReset = pathname === "\/reset-password"/);
-  assert.match(src, /onPasswordReset \? null : <PRCDorIntroPopup \/>/);
-  assert.match(src, /!loading && user && !onPasswordReset/);
+  assert.match(
+    src,
+    /\{!loading && user && !onPasswordReset \? <PRCDor2026WinnerPopup \/> : null\}/,
+    "the winner popup must stay gated behind auth and the reset page",
+  );
+  assert.ok(
+    !src.includes("PRCDorIntroPopup"),
+    "the removed intro popup must never be mounted at the root again",
+  );
 });
 
 test("existing signup and login flows are untouched", () => {
