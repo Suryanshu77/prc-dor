@@ -103,7 +103,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <nav className="flex-1 space-y-1">
             {visible.map((item) => {
               const Icon = item.icon;
-              const active = router.state.location.pathname.startsWith(item.to);
+              const pathname = router.state.location.pathname;
+              const active =
+                pathname === item.to || pathname.startsWith(`${item.to}/`);
               return (
                 <Link
                   key={item.to}

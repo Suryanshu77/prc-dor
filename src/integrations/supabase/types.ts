@@ -769,6 +769,13 @@ export type Database = {
         Args: { _period_id: string; _player_ids: string[] };
         Returns: number;
       };
+      admin_set_all_special_award_status: {
+        Args: {
+          _voting_open: boolean | null;
+          _results_visible: boolean | null;
+        };
+        Returns: number;
+      };
       admin_set_special_award_eligibility: {
         Args: {
           _award_id: string;

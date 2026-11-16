@@ -130,14 +130,18 @@ test("migration file name follows the convention and lands after its predecessor
       FILES.indexOf(MIGRATION_NAME),
     "must apply after the voter-approval system",
   );
-  // This migration may be followed only by the additive follow-counts RPC
-  // (20261115000000_follow_counts.sql): it re-uses the profile-directory
-  // helpers but grants no profiles columns and touches no policies.
+  // This migration may be followed only by additive migrations that re-use
+  // the profile-directory helpers but grant no profiles columns and touch no
+  // policies: the follow-counts RPC (20261115000000) and the special-awards
+  // master-control RPC (20261115120000).
   const newer = FILES.slice(FILES.indexOf(MIGRATION_NAME) + 1);
   assert.deepEqual(
     newer,
-    ["20261115000000_follow_counts.sql"],
-    "only the follow-counts migration may land after profile-directory",
+    [
+      "20261115000000_follow_counts.sql",
+      "20261115120000_special_awards_master_control.sql",
+    ],
+    "only the follow-counts and special-awards master-control migrations may land after profile-directory",
   );
 });
 

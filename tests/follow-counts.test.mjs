@@ -42,10 +42,15 @@ test("migration file name follows the convention and lands after profile-directo
         FILES.indexOf(MIGRATION_NAME),
     "must apply after the profile-directory migration it builds on",
   );
-  assert.equal(
-    FILES[FILES.length - 1],
-    MIGRATION_NAME,
-    "must be the newest migration",
+  // Like the special-awards guard, "newest" is relaxed to an explicit
+  // allow-list: later, unrelated migrations may land after this one. Only the
+  // special-awards master-control RPC (a new admin function, additive) does so
+  // today — nothing may redefine get_follow_counts.
+  const newer = FILES.slice(FILES.indexOf(MIGRATION_NAME) + 1);
+  assert.deepEqual(
+    newer,
+    ["20261115120000_special_awards_master_control.sql"],
+    "only the special-awards master-control migration may land after follow-counts",
   );
 });
 

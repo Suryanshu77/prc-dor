@@ -84,6 +84,9 @@ function eligibilityLabel(award: Award): string {
     case "max_age":
       return `Players aged ${award.eligibility_max_age ?? "—"} or younger`;
     default:
+      if (award.award_key === "gerd_muller") return "Open to all forwards";
+      if (award.award_key === "socrates")
+        return "Open to all 12th pass seniors";
       return "Open to all players";
   }
 }

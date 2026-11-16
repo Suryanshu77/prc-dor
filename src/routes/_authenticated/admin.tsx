@@ -37,6 +37,10 @@ import {
   UserCheck,
   UserX,
   Inbox,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -911,6 +915,47 @@ const AWARD_KEYS: SpecialAward["award_key"][] = [
   "socrates",
 ];
 
+type MasterAction = "open" | "close" | "publish" | "hide";
+
+const MASTER_ACTIONS: Record<
+  MasterAction,
+  {
+    label: string;
+    confirm: string;
+    success: string;
+    args: { _voting_open: boolean | null; _results_visible: boolean | null };
+  }
+> = {
+  open: {
+    label: "Open Voting for All",
+    confirm:
+      "Are you sure you want to open voting for all four Special Awards?",
+    success: "Voting opened for all four Special Awards",
+    args: { _voting_open: true, _results_visible: null },
+  },
+  close: {
+    label: "Close Voting for All",
+    confirm:
+      "Are you sure you want to close voting for all four Special Awards?",
+    success: "Voting closed for all four Special Awards",
+    args: { _voting_open: false, _results_visible: null },
+  },
+  publish: {
+    label: "Publish All Results",
+    confirm:
+      "Are you sure you want to publish results for all four Special Awards?",
+    success: "Results published for all four Special Awards",
+    args: { _voting_open: null, _results_visible: true },
+  },
+  hide: {
+    label: "Hide All Results",
+    confirm:
+      "Are you sure you want to hide results for all four Special Awards?",
+    success: "Results hidden for all four Special Awards",
+    args: { _voting_open: null, _results_visible: false },
+  },
+};
+
 function SpecialAwardsSection() {
   const qc = useQueryClient();
 
@@ -932,6 +977,87 @@ function SpecialAwardsSection() {
   });
 
   const awards = (awardsQ.data ?? []) as SpecialAward[];
+
+  // Same query key/shape as PeriodSection so the cache is shared.
+  const periodsQ = useQuery({
+    queryKey: ["periods"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("voting_periods")
+        .select("*")
+        .order("year", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  // Master-control scope: the four awards of the newest edition that has
+  // special-award rows — exactly the rows the admin_set_all_special_award_status
+  // RPC targets server-side, so the summary always matches the operation.
+  const periods = (periodsQ.data ?? []) as { id: string; year: number }[];
+  const knownPeriodIds = new Set(awards.map((a) => a.voting_period_id));
+  // Mirrors the RPC's `ORDER BY p.year DESC, p.id` so the summary always
+  // covers exactly the rows the master operation will update.
+  const latestEdition = periods
+    .filter((p) => knownPeriodIds.has(p.id))
+    .sort(
+      (a, b) => b.year - a.year || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+    )[0];
+  const editionAwards = latestEdition
+    ? awards.filter((a) => a.voting_period_id === latestEdition.id)
+    : [];
+  const scopeReady = !periodsQ.isLoading && editionAwards.length > 0;
+  // The RPC raises unless all four keys exist in scope, so the master buttons
+  // stay disabled while an edition is incomplete instead of failing on click.
+  const scopeComplete = editionAwards.length === AWARD_KEYS.length;
+
+  const votingAllOpen = editionAwards.every((a) => a.voting_open);
+  const votingAllClosed = editionAwards.every((a) => !a.voting_open);
+  const resultsAllVisible = editionAwards.every((a) => a.results_visible);
+  const resultsAllHidden = editionAwards.every((a) => !a.results_visible);
+  const votingStatus = votingAllOpen
+    ? "All Voting Open"
+    : votingAllClosed
+      ? "All Voting Closed"
+      : "Mixed Voting Status";
+  const resultsStatus = resultsAllVisible
+    ? "All Results Visible"
+    : resultsAllHidden
+      ? "All Results Hidden"
+      : "Mixed Results Status";
+
+  const [masterConfirm, setMasterConfirm] = useState<MasterAction | null>(null);
+  const [masterBusy, setMasterBusy] = useState(false);
+
+  async function runMaster(action: MasterAction) {
+    if (masterBusy) return;
+    const cfg = MASTER_ACTIONS[action];
+    setMasterBusy(true);
+    try {
+      // Both args are always sent (JSON.stringify drops undefined keys and
+      // PostgREST then cannot resolve the RPC); SQL NULL = leave unchanged.
+      const { data, error } = await supabase.rpc(
+        "admin_set_all_special_award_status",
+        cfg.args,
+      );
+      if (error) {
+        console.error("[admin] master status update failed", error);
+        toast.error(error.message);
+        return;
+      }
+      toast.success(
+        `${cfg.success} (${data ?? editionAwards.length} awards updated)`,
+      );
+      // Refresh everything the four statuses feed: the admin overview, the
+      // per-award cards, public results pages and the special ballot page.
+      qc.invalidateQueries({ queryKey: ["special-awards"] });
+      qc.invalidateQueries({ queryKey: ["special-award-stats"] });
+      qc.invalidateQueries({ queryKey: ["special-results"] });
+      qc.invalidateQueries({ queryKey: ["special-results-visible"] });
+    } finally {
+      setMasterBusy(false);
+      setMasterConfirm(null);
+    }
+  }
 
   // Includes age for client-side eligibility previews; the server re-checks
   // the rule on every nomination (see admin_nominate_player).
@@ -1035,6 +1161,160 @@ function SpecialAwardsSection() {
         the Yashin Trophy opens at 3 and ranks every nominee while it only has 3
         or 4. Ordering is per edition.
       </p>
+
+      {/* Master control: one atomic RPC for the four awards of the newest
+          edition. The per-award cards below keep their individual switches. */}
+      <div className="mb-4 rounded-xl border border-border bg-secondary/30 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="font-display text-lg">Master Control</div>
+          <div className="text-xs text-muted-foreground">
+            {scopeReady
+              ? `Scope: PRC D'or ${latestEdition?.year ?? "—"} (${editionAwards.length} awards)`
+              : "Scope: loading…"}
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <Badge
+            variant={
+              votingStatus === "All Voting Open"
+                ? "default"
+                : votingStatus === "All Voting Closed"
+                  ? "secondary"
+                  : "outline"
+            }
+          >
+            {votingStatus}
+          </Badge>
+          <Badge
+            variant={
+              resultsStatus === "All Results Visible"
+                ? "default"
+                : resultsStatus === "All Results Hidden"
+                  ? "secondary"
+                  : "outline"
+            }
+          >
+            {resultsStatus}
+          </Badge>
+          {!scopeComplete && (
+            <Badge variant="destructive">Incomplete edition</Badge>
+          )}
+        </div>
+
+        <ul className="mt-3 divide-y divide-border/60 rounded-lg border border-border/60">
+          {AWARD_KEYS.map((key) => {
+            const award = editionAwards.find((a) => a.award_key === key);
+            return (
+              <li
+                key={key}
+                className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
+              >
+                <span className="font-medium">
+                  {award?.title ?? key.replace("_", " ")}
+                </span>
+                <span className="flex flex-wrap items-center gap-2">
+                  {award ? (
+                    <>
+                      <Badge
+                        variant={award.voting_open ? "default" : "secondary"}
+                      >
+                        {award.voting_open ? "Voting open" : "Voting closed"}
+                      </Badge>
+                      <Badge
+                        variant={
+                          award.results_visible ? "default" : "secondary"
+                        }
+                      >
+                        {award.results_visible
+                          ? "Results visible"
+                          : "Results hidden"}
+                      </Badge>
+                    </>
+                  ) : (
+                    <Badge variant="destructive">missing</Badge>
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(Object.keys(MASTER_ACTIONS) as MasterAction[]).map((action) => {
+            const cfg = MASTER_ACTIONS[action];
+            const Icon =
+              action === "open"
+                ? Unlock
+                : action === "close"
+                  ? Lock
+                  : action === "publish"
+                    ? Eye
+                    : EyeOff;
+            return (
+              <Button
+                key={action}
+                size="sm"
+                variant={
+                  action === "open" || action === "publish"
+                    ? "default"
+                    : "outline"
+                }
+                disabled={!scopeReady || !scopeComplete || masterBusy}
+                onClick={() => setMasterConfirm(action)}
+              >
+                <Icon className="mr-1 h-4 w-4" /> {cfg.label}
+              </Button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Each master action updates all four awards of this edition in a single
+          atomic database operation — either all four change or none do.
+        </p>
+      </div>
+
+      <AlertDialog
+        open={masterConfirm !== null}
+        onOpenChange={(open) => {
+          if (!open && !masterBusy) setMasterConfirm(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {masterConfirm ? `${MASTER_ACTIONS[masterConfirm].label}?` : ""}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {masterConfirm ? MASTER_ACTIONS[masterConfirm].confirm : ""} This
+              applies to all four Special Awards of the current edition in one
+              operation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              disabled={masterBusy}
+              onClick={() => setMasterConfirm(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={masterBusy}
+              className="bg-gold-gradient text-background hover:opacity-90"
+              onClick={() => {
+                if (masterConfirm) void runMaster(masterConfirm);
+              }}
+            >
+              {masterBusy
+                ? "Applying…"
+                : masterConfirm
+                  ? MASTER_ACTIONS[masterConfirm].label
+                  : ""}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="space-y-4">
         {awards.map((award) => (
