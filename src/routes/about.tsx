@@ -173,23 +173,42 @@ function AboutPage() {
 
       {/* ── 4. Our Vision ───────────────────────────────────────────── */}
       <Panel delay={180}>
-        <SectionTitle icon={Trophy}>Our Vision</SectionTitle>
-        <div className="mt-4 max-w-prose space-y-3 text-sm leading-relaxed text-muted-foreground sm:text-[0.95rem]">
-          <p>
-            PRC D&apos;OR was built so recognition never has to stay informal
-            again. Every vote is counted by the community, every result stays on
-            record, and each season adds to a history anyone can return to.
-          </p>
-          <p>
-            The long-term vision is simple: keep the award in the hands of the
-            people who live the game, and keep the story of PRC D&apos;OR
-            football — who was recognised, and how — transparent for seasons to
-            come.
-          </p>
+        <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-8">
+          <div className="min-w-0">
+            <SectionTitle icon={Trophy}>Our Vision</SectionTitle>
+            <div className="mt-4 max-w-prose space-y-3 text-sm leading-relaxed text-muted-foreground sm:text-[0.95rem]">
+              <p>
+                PRC D&apos;OR was built so recognition never has to stay
+                informal again. Every vote is counted by the community, every
+                result stays on record, and each season adds to a history anyone
+                can return to.
+              </p>
+              <p>
+                The long-term vision is simple: keep the award in the hands of
+                the people who live the game, and keep the story of PRC
+                D&apos;OR football — who was recognised, and how — transparent
+                for seasons to come.
+              </p>
+            </div>
+            <p className="mt-5 font-display text-base italic text-gold">
+              Football greatness deserves more than a moment. It deserves a
+              record.
+            </p>
+          </div>
+
+          <div className="relative min-w-0">
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 -z-10 rounded-2xl bg-[var(--gold)] opacity-15 blur-2xl"
+            />
+            <img
+              src="/images/about-vision.png"
+              alt="PRC D'OR vision — community-driven football recognition"
+              loading="lazy"
+              className="aspect-[4/3] w-full rounded-2xl border border-[var(--gold)]/35 object-cover object-center shadow-[0_18px_40px_-18px_rgba(0,0,0,0.65)]"
+            />
+          </div>
         </div>
-        <p className="mt-5 font-display text-base italic text-gold">
-          Football greatness deserves more than a moment. It deserves a record.
-        </p>
       </Panel>
 
       {/* ── 5. Creator ──────────────────────────────────────────────── */}
