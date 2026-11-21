@@ -17,6 +17,7 @@ import {
   Pencil,
   Award,
   UserRound,
+  UsersRound,
   Info,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -55,6 +56,7 @@ const NAV: NavItem[] = [
     liveKey: "specialAwardsLive",
   },
   { to: "/results", label: "Results", icon: Trophy },
+  { to: "/toty", label: "Team of the Year", icon: UsersRound },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/hall-of-fame", label: "Hall of Fame", icon: Crown },
   { to: "/game", label: "Game", icon: Gamepad2 },

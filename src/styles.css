@@ -259,6 +259,7 @@
   animation: live-dot 1.2s ease-in-out infinite;
 }
 
+/* Reduced motion: keep the live badge readable, never hidden. */
 @media (prefers-reduced-motion: reduce) {
   .prc-dor-winner-popup,
   .prc-dor-winner-popup *,

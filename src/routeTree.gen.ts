@@ -17,6 +17,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedVoteSpecialRouteImport } from './routes/_authenticated/vote-special'
 import { Route as AuthenticatedVoteRouteImport } from './routes/_authenticated/vote'
+import { Route as AuthenticatedTotyRouteImport } from './routes/_authenticated/toty'
 import { Route as AuthenticatedResultsRouteImport } from './routes/_authenticated/results'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedHallOfFameRouteImport } from './routes/_authenticated/hall-of-fame'
@@ -65,6 +66,11 @@ const AuthenticatedVoteSpecialRoute =
 const AuthenticatedVoteRoute = AuthenticatedVoteRouteImport.update({
   id: '/vote',
   path: '/vote',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTotyRoute = AuthenticatedTotyRouteImport.update({
+  id: '/toty',
+  path: '/toty',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedResultsRoute = AuthenticatedResultsRouteImport.update({
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/hall-of-fame': typeof AuthenticatedHallOfFameRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/results': typeof AuthenticatedResultsRoute
+  '/toty': typeof AuthenticatedTotyRoute
   '/vote': typeof AuthenticatedVoteRoute
   '/vote-special': typeof AuthenticatedVoteSpecialRoute
   '/players/$username': typeof AuthenticatedPlayersUsernameRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/hall-of-fame': typeof AuthenticatedHallOfFameRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/results': typeof AuthenticatedResultsRoute
+  '/toty': typeof AuthenticatedTotyRoute
   '/vote': typeof AuthenticatedVoteRoute
   '/vote-special': typeof AuthenticatedVoteSpecialRoute
   '/players/$username': typeof AuthenticatedPlayersUsernameRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/_authenticated/hall-of-fame': typeof AuthenticatedHallOfFameRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/results': typeof AuthenticatedResultsRoute
+  '/_authenticated/toty': typeof AuthenticatedTotyRoute
   '/_authenticated/vote': typeof AuthenticatedVoteRoute
   '/_authenticated/vote-special': typeof AuthenticatedVoteSpecialRoute
   '/_authenticated/players/$username': typeof AuthenticatedPlayersUsernameRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/hall-of-fame'
     | '/profile'
     | '/results'
+    | '/toty'
     | '/vote'
     | '/vote-special'
     | '/players/$username'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/hall-of-fame'
     | '/profile'
     | '/results'
+    | '/toty'
     | '/vote'
     | '/vote-special'
     | '/players/$username'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/_authenticated/hall-of-fame'
     | '/_authenticated/profile'
     | '/_authenticated/results'
+    | '/_authenticated/toty'
     | '/_authenticated/vote'
     | '/_authenticated/vote-special'
     | '/_authenticated/players/$username'
@@ -294,6 +306,13 @@ declare module '@tanstack/react-router' {
       path: '/vote'
       fullPath: '/vote'
       preLoaderRoute: typeof AuthenticatedVoteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/toty': {
+      id: '/_authenticated/toty'
+      path: '/toty'
+      fullPath: '/toty'
+      preLoaderRoute: typeof AuthenticatedTotyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/results': {
@@ -370,6 +389,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHallOfFameRoute: typeof AuthenticatedHallOfFameRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedResultsRoute: typeof AuthenticatedResultsRoute
+  AuthenticatedTotyRoute: typeof AuthenticatedTotyRoute
   AuthenticatedVoteRoute: typeof AuthenticatedVoteRoute
   AuthenticatedVoteSpecialRoute: typeof AuthenticatedVoteSpecialRoute
   AuthenticatedPlayersUsernameRoute: typeof AuthenticatedPlayersUsernameRoute
@@ -384,6 +404,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHallOfFameRoute: AuthenticatedHallOfFameRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedResultsRoute: AuthenticatedResultsRoute,
+  AuthenticatedTotyRoute: AuthenticatedTotyRoute,
   AuthenticatedVoteRoute: AuthenticatedVoteRoute,
   AuthenticatedVoteSpecialRoute: AuthenticatedVoteSpecialRoute,
   AuthenticatedPlayersUsernameRoute: AuthenticatedPlayersUsernameRoute,
