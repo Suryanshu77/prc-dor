@@ -326,6 +326,7 @@ export type Database = {
           eligibility_max_age: number | null;
           eligibility_position:
             Database["public"]["Enums"]["player_position"] | null;
+          eligibility_position_group: string | null;
           eligibility_type: string;
           id: string;
           results_visible: boolean;
@@ -341,6 +342,7 @@ export type Database = {
           eligibility_max_age?: number | null;
           eligibility_position?:
             Database["public"]["Enums"]["player_position"] | null;
+          eligibility_position_group?: string | null;
           eligibility_type?: string;
           id?: string;
           results_visible?: boolean;
@@ -356,6 +358,7 @@ export type Database = {
           eligibility_max_age?: number | null;
           eligibility_position?:
             Database["public"]["Enums"]["player_position"] | null;
+          eligibility_position_group?: string | null;
           eligibility_type?: string;
           id?: string;
           results_visible?: boolean;

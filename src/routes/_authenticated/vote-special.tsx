@@ -20,6 +20,12 @@ import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { SPECIAL_POINTS_BY_RANK, SPECIAL_RANK_LABELS } from "@/lib/points";
+import { positionGroupPlural } from "@/lib/position-group";
+import {
+  POSITION_GROUP_TROPHY_IMAGES,
+  compareSpecialAwardKeys,
+  isPositionGroupAward,
+} from "@/lib/special-awards";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +44,7 @@ import {
   AlertTriangle,
   Check,
   Award,
+  Medal,
   Lock,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -55,8 +62,9 @@ type Award = {
   award_key: string;
   title: string;
   description: string | null;
-  eligibility_type: "all" | "by_position" | "max_age";
+  eligibility_type: "all" | "by_position" | "max_age" | "by_position_group";
   eligibility_position: string | null;
+  eligibility_position_group: string | null;
   eligibility_max_age: number | null;
   voting_open: boolean;
   results_visible: boolean;
@@ -81,6 +89,10 @@ function eligibilityLabel(award: Award): string {
   switch (award.eligibility_type) {
     case "by_position":
       return `Only ${award.eligibility_position ?? "position"} players`;
+    case "by_position_group": {
+      const group = positionGroupPlural(award.eligibility_position_group);
+      return `${group.charAt(0).toUpperCase()}${group.slice(1)} only`;
+    }
     case "max_age":
       return `Players aged ${award.eligibility_max_age ?? "—"} or younger`;
     default:
@@ -92,12 +104,15 @@ function eligibilityLabel(award: Award): string {
 }
 
 // Trophy artwork for the pre-ballot introduction screen, keyed by the award_key
-// values constrained in the special-awards migration.
+// values constrained in the special-awards migrations. The two position-
+// exclusive awards take their artwork from the shared map; AwardIntro falls
+// back to the gold Award icon when a key is missing.
 const AWARD_TROPHY_IMAGES: Record<string, string> = {
   kopa: "/images/special-awards/kopa.png",
   yashin: "/images/special-awards/yashin.png",
   socrates: "/images/special-awards/socrates.png",
   gerd_muller: "/images/special-awards/gerd_muller.png",
+  ...POSITION_GROUP_TROPHY_IMAGES,
 };
 
 function SpecialAwardsPage() {
@@ -157,7 +172,7 @@ function SpecialAwardsPage() {
     () =>
       allAwards
         .filter((a) => a.voting_period_id === latestEditionId)
-        .sort((a, b) => a.award_key.localeCompare(b.award_key)),
+        .sort((a, b) => compareSpecialAwardKeys(a.award_key, b.award_key)),
     [allAwards, latestEditionId],
   );
 
@@ -448,7 +463,9 @@ function AwardIntro({
           alt={award.title}
           className="animate-fade-up max-h-[460px] w-auto max-w-full object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] max-sm:max-h-[45vh]"
         />
-      ) : null}
+      ) : (
+        <Award className="animate-fade-up h-40 w-40 text-gold drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]" />
+      )}
       <Button
         onClick={onContinue}
         size="lg"
@@ -479,7 +496,12 @@ function AwardHeader({ award }: { award: Award }) {
   return (
     <div>
       <h2 className="flex items-center gap-2 font-display text-2xl">
-        <Award className="h-5 w-5 text-gold" /> {award.title}
+        {isPositionGroupAward(award.award_key) ? (
+          <Medal className="h-5 w-5 shrink-0 text-gold" />
+        ) : (
+          <Award className="h-5 w-5 text-gold" />
+        )}{" "}
+        {award.title}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {award.description ? `${award.description} · ` : ""}

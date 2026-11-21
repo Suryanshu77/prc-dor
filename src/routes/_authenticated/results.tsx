@@ -4,10 +4,14 @@ import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { Trophy, Share2, Lock, Award } from "lucide-react";
+import { Trophy, Share2, Lock, Award, Medal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import {
+  isPositionGroupAward,
+  compareSpecialAwardKeys,
+} from "@/lib/special-awards";
 
 export const Route = createFileRoute("/_authenticated/results")({
   head: () => ({ meta: [{ title: "Results — PRC D'or" }] }),
@@ -234,8 +238,9 @@ function ResultsPage() {
         </>
       )}
 
-      {/* Special awards (Kopa / Yashin / Gerd Müller / Socrates) — each award
-          reveals its own ranking when the admin opens it. */}
+      {/* Special awards (Kopa / Yashin / Gerd Müller / Socrates / Best
+          Midfielder / Best Defender) — each award reveals its own ranking
+          when the admin opens it. */}
       <SpecialAwardsResults periodId={periodId} year={period?.year ?? null} />
     </div>
   );
@@ -343,6 +348,9 @@ function SpecialAwardsResults({
   });
 
   const awards = (awardsQ.data ?? []) as SpecialAwardSummary[];
+  const orderedAwards = [...awards].sort((a, b) =>
+    compareSpecialAwardKeys(a.award_key, b.award_key),
+  );
   if (!periodId || awards.length === 0) return null;
 
   return (
@@ -357,7 +365,7 @@ function SpecialAwardsResults({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {awards.map((a) => (
+        {orderedAwards.map((a) => (
           <AwardResultsCard key={a.id} award={a} />
         ))}
       </div>
@@ -415,7 +423,12 @@ function AwardResultsCard({ award }: { award: SpecialAwardSummary }) {
     <div className="glass-strong rounded-2xl p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-display text-xl">
-          <Award className="h-5 w-5 text-gold" /> {award.title}
+          {isPositionGroupAward(award.award_key) ? (
+            <Medal className="h-5 w-5 shrink-0 text-gold" />
+          ) : (
+            <Award className="h-5 w-5 text-gold" />
+          )}{" "}
+          {award.title}
         </h3>
         {award.voting_open && (
           <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-muted-foreground">

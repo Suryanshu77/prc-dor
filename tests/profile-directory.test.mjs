@@ -132,16 +132,18 @@ test("migration file name follows the convention and lands after its predecessor
   );
   // This migration may be followed only by additive migrations that re-use
   // the profile-directory helpers but grant no profiles columns and touch no
-  // policies: the follow-counts RPC (20261115000000) and the special-awards
-  // master-control RPC (20261115120000).
+  // policies: the follow-counts RPC (20261115000000), the special-awards
+  // master-control RPC (20261115120000) and the position-group awards
+  // migration (20261120120000).
   const newer = FILES.slice(FILES.indexOf(MIGRATION_NAME) + 1);
   assert.deepEqual(
     newer,
     [
       "20261115000000_follow_counts.sql",
       "20261115120000_special_awards_master_control.sql",
+      "20261120120000_position_group_awards.sql",
     ],
-    "only the follow-counts and special-awards master-control migrations may land after profile-directory",
+    "only the follow-counts and special-awards migrations may land after profile-directory",
   );
 });
 

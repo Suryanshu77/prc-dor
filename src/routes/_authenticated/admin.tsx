@@ -9,6 +9,12 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
+import { positionGroup, positionGroupPlural } from "@/lib/position-group";
+import {
+  SPECIAL_AWARD_KEY_ORDER,
+  compareSpecialAwardKeys,
+  isPositionGroupAward,
+} from "@/lib/special-awards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +39,7 @@ import {
   Plus,
   Trophy,
   Award,
+  Medal,
   X,
   UserCheck,
   UserX,
@@ -876,11 +883,18 @@ function HallOfFameSection() {
 type SpecialAward = {
   id: string;
   voting_period_id: string;
-  award_key: "kopa" | "yashin" | "gerd_muller" | "socrates";
+  award_key:
+    | "kopa"
+    | "yashin"
+    | "gerd_muller"
+    | "socrates"
+    | "best_midfielder"
+    | "best_defender";
   title: string;
   description: string | null;
-  eligibility_type: "all" | "by_position" | "max_age";
+  eligibility_type: "all" | "by_position" | "max_age" | "by_position_group";
   eligibility_position: string | null;
+  eligibility_position_group: string | null;
   eligibility_max_age: number | null;
   voting_open: boolean;
   results_visible: boolean;
@@ -908,12 +922,9 @@ type SpecialPlayer = {
   age: number | null;
 };
 
-const AWARD_KEYS: SpecialAward["award_key"][] = [
-  "kopa",
-  "yashin",
-  "gerd_muller",
-  "socrates",
-];
+// The explicit six-award allow-list, in lineup order. Mirrors the server-side
+// _keys CONSTANT in admin_set_all_special_award_status.
+const AWARD_KEYS: SpecialAward["award_key"][] = [...SPECIAL_AWARD_KEY_ORDER];
 
 type MasterAction = "open" | "close" | "publish" | "hide";
 
@@ -928,30 +939,29 @@ const MASTER_ACTIONS: Record<
 > = {
   open: {
     label: "Open Voting for All",
-    confirm:
-      "Are you sure you want to open voting for all four Special Awards?",
-    success: "Voting opened for all four Special Awards",
+    confirm: "Are you sure you want to open voting for all six Special Awards?",
+    success: "Voting opened for all six Special Awards",
     args: { _voting_open: true, _results_visible: null },
   },
   close: {
     label: "Close Voting for All",
     confirm:
-      "Are you sure you want to close voting for all four Special Awards?",
-    success: "Voting closed for all four Special Awards",
+      "Are you sure you want to close voting for all six Special Awards?",
+    success: "Voting closed for all six Special Awards",
     args: { _voting_open: false, _results_visible: null },
   },
   publish: {
     label: "Publish All Results",
     confirm:
-      "Are you sure you want to publish results for all four Special Awards?",
-    success: "Results published for all four Special Awards",
+      "Are you sure you want to publish results for all six Special Awards?",
+    success: "Results published for all six Special Awards",
     args: { _voting_open: null, _results_visible: true },
   },
   hide: {
     label: "Hide All Results",
     confirm:
-      "Are you sure you want to hide results for all four Special Awards?",
-    success: "Results hidden for all four Special Awards",
+      "Are you sure you want to hide results for all six Special Awards?",
+    success: "Results hidden for all six Special Awards",
     args: { _voting_open: null, _results_visible: false },
   },
 };
@@ -990,7 +1000,7 @@ function SpecialAwardsSection() {
     },
   });
 
-  // Master-control scope: the four awards of the newest edition that has
+  // Master-control scope: the six awards of the newest edition that has
   // special-award rows — exactly the rows the admin_set_all_special_award_status
   // RPC targets server-side, so the summary always matches the operation.
   const periods = (periodsQ.data ?? []) as { id: string; year: number }[];
@@ -1006,7 +1016,7 @@ function SpecialAwardsSection() {
     ? awards.filter((a) => a.voting_period_id === latestEdition.id)
     : [];
   const scopeReady = !periodsQ.isLoading && editionAwards.length > 0;
-  // The RPC raises unless all four keys exist in scope, so the master buttons
+  // The RPC raises unless all six keys exist in scope, so the master buttons
   // stay disabled while an edition is incomplete instead of failing on click.
   const scopeComplete = editionAwards.length === AWARD_KEYS.length;
 
@@ -1047,7 +1057,7 @@ function SpecialAwardsSection() {
       toast.success(
         `${cfg.success} (${data ?? editionAwards.length} awards updated)`,
       );
-      // Refresh everything the four statuses feed: the admin overview, the
+      // Refresh everything the six statuses feed: the admin overview, the
       // per-award cards, public results pages and the special ballot page.
       qc.invalidateQueries({ queryKey: ["special-awards"] });
       qc.invalidateQueries({ queryKey: ["special-award-stats"] });
@@ -1134,11 +1144,13 @@ function SpecialAwardsSection() {
           <Award className="h-5 w-5 text-gold" /> Special Awards — PRC D'or 2027
         </h2>
         <p className="mb-4 max-w-2xl text-sm text-muted-foreground">
-          Creates the PRC D'or 2027 voting period and the four special awards
-          (Kopa Trophy, Yashin Trophy, Gerd Müller Trophy, Socrates Award) with
-          their default eligibility rules. You can adjust eligibility, nominate
-          players and open voting below once created. Existing voting periods
-          and all historical data are untouched.
+          Creates the PRC D'or 2027 voting period and the six special awards
+          (Kopa Trophy, Yashin Trophy, Gerd Müller Trophy, Socrates Award, Best
+          Midfielder Award, Best Defender Award) with their default eligibility
+          rules. You can adjust eligibility on the four configurable awards,
+          nominate players and open voting below once created. The two
+          position-exclusive awards keep their fixed midfielder/defender rules.
+          Existing voting periods and all historical data are untouched.
         </p>
         <Button
           onClick={createEdition}
@@ -1159,10 +1171,11 @@ function SpecialAwardsSection() {
         Configure eligibility, manage nominations, open voting and reveal
         results per award. Nominees: top-5 ballots score 5, 4, 3, 2, 1 points;
         the Yashin Trophy opens at 3 and ranks every nominee while it only has 3
-        or 4. Ordering is per edition.
+        or 4. Best Midfielder and Best Defender are position-locked. Ordering is
+        per edition.
       </p>
 
-      {/* Master control: one atomic RPC for the four awards of the newest
+      {/* Master control: one atomic RPC for the six awards of the newest
           edition. The per-award cards below keep their individual switches. */}
       <div className="mb-4 rounded-xl border border-border bg-secondary/30 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1269,8 +1282,8 @@ function SpecialAwardsSection() {
           })}
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Each master action updates all four awards of this edition in a single
-          atomic database operation — either all four change or none do.
+          Each master action updates all six awards of this edition in a single
+          atomic database operation — either all six change or none do.
         </p>
       </div>
 
@@ -1287,7 +1300,7 @@ function SpecialAwardsSection() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {masterConfirm ? MASTER_ACTIONS[masterConfirm].confirm : ""} This
-              applies to all four Special Awards of the current edition in one
+              applies to all six Special Awards of the current edition in one
               operation.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1317,20 +1330,25 @@ function SpecialAwardsSection() {
       </AlertDialog>
 
       <div className="space-y-4">
-        {awards.map((award) => (
-          <AwardManageCard
-            key={award.id}
-            award={award}
-            players={(playersQ.data ?? []) as SpecialPlayer[]}
-            stats={
-              (
-                statsQ.data as
-                  | Record<string, { vote_count: number; voter_count: number }>
-                  | undefined
-              )?.[award.id] ?? { vote_count: 0, voter_count: 0 }
-            }
-          />
-        ))}
+        {[...awards]
+          .sort((a, b) => compareSpecialAwardKeys(a.award_key, b.award_key))
+          .map((award) => (
+            <AwardManageCard
+              key={award.id}
+              award={award}
+              players={(playersQ.data ?? []) as SpecialPlayer[]}
+              stats={
+                (
+                  statsQ.data as
+                    | Record<
+                        string,
+                        { vote_count: number; voter_count: number }
+                      >
+                    | undefined
+                )?.[award.id] ?? { vote_count: 0, voter_count: 0 }
+              }
+            />
+          ))}
       </div>
     </section>
   );
@@ -1390,6 +1408,10 @@ function AwardManageCard({
   function eligiblePlayers(): SpecialPlayer[] {
     return players.filter((p) => {
       if (nominatedIds.has(p.id)) return false;
+      if (eligType === "by_position_group")
+        // Preview only: admin_nominate_player re-checks the normalised
+        // position group server-side on every nomination.
+        return positionGroup(p.position) === award.eligibility_position_group;
       if (eligType === "by_position") return p.position === eligPosition;
       if (eligType === "max_age")
         return p.age != null && p.age <= Number(maxAge);
@@ -1480,7 +1502,12 @@ function AwardManageCard({
       {/* Header: title + stats + status toggles */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="font-display text-lg">{award.title}</div>
+          <div className="flex items-center gap-2 font-display text-lg">
+            {isPositionGroupAward(award.award_key) && (
+              <Medal className="h-5 w-5 shrink-0 text-gold" />
+            )}
+            {award.title}
+          </div>
           <div className="mt-0.5 text-xs text-muted-foreground">
             {award.description ?? describeEligibility(award)} ·{" "}
             {candidates.length}/{award.award_key === "yashin" ? "3+" : "5+"}{" "}
@@ -1511,74 +1538,88 @@ function AwardManageCard({
         </div>
       </div>
 
-      {/* Eligibility configuration */}
+      {/* Eligibility configuration. The two position-exclusive awards display
+          their fixed rule instead of the editor: the server rejects any
+          eligibility change for them (admin_set_special_award_eligibility). */}
       <div className="mt-4 flex flex-wrap items-end gap-3 rounded-lg bg-secondary/30 p-3">
-        <div className="w-44">
-          <Label>Eligibility rule</Label>
-          <Select
-            value={eligType}
-            onValueChange={(v) =>
-              setEligType(v as SpecialAward["eligibility_type"])
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All players</SelectItem>
-              <SelectItem value="by_position">By position</SelectItem>
-              <SelectItem value="max_age">Max age</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        {eligType === "max_age" && (
-          <div className="w-32">
-            <Label>Max age</Label>
-            <Input
-              type="number"
-              min={1}
-              value={maxAge}
-              onChange={(e) =>
-                setMaxAge(e.target.value ? Number(e.target.value) : "")
-              }
-            />
+        {award.eligibility_type === "by_position_group" ? (
+          <div className="w-64">
+            <Label>Eligibility rule</Label>
+            <div className="mt-1 rounded-md border border-border bg-secondary/40 px-3 py-2 text-sm">
+              Position-locked:{" "}
+              {positionGroupPlural(award.eligibility_position_group)} only
+            </div>
           </div>
-        )}
-        {eligType === "by_position" && (
-          <div className="w-44">
-            <Label>Position</Label>
-            <Select value={eligPosition} onValueChange={setEligPosition}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select position" />
-              </SelectTrigger>
-              <SelectContent>
-                {[
-                  "Goalkeeper",
-                  "Defender",
-                  "Midfielder",
-                  "Winger",
-                  "Striker",
-                ].map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={saveEligibility}
-          disabled={stats.vote_count > 0}
-        >
-          Save rule
-        </Button>
-        {stats.vote_count > 0 && (
-          <span className="text-xs text-muted-foreground">
-            Eligibility locked while ballots exist.
-          </span>
+        ) : (
+          <>
+            <div className="w-44">
+              <Label>Eligibility rule</Label>
+              <Select
+                value={eligType}
+                onValueChange={(v) =>
+                  setEligType(v as SpecialAward["eligibility_type"])
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All players</SelectItem>
+                  <SelectItem value="by_position">By position</SelectItem>
+                  <SelectItem value="max_age">Max age</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {eligType === "max_age" && (
+              <div className="w-32">
+                <Label>Max age</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={maxAge}
+                  onChange={(e) =>
+                    setMaxAge(e.target.value ? Number(e.target.value) : "")
+                  }
+                />
+              </div>
+            )}
+            {eligType === "by_position" && (
+              <div className="w-44">
+                <Label>Position</Label>
+                <Select value={eligPosition} onValueChange={setEligPosition}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[
+                      "Goalkeeper",
+                      "Defender",
+                      "Midfielder",
+                      "Winger",
+                      "Striker",
+                    ].map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={saveEligibility}
+              disabled={stats.vote_count > 0}
+            >
+              Save rule
+            </Button>
+            {stats.vote_count > 0 && (
+              <span className="text-xs text-muted-foreground">
+                Eligibility locked while ballots exist.
+              </span>
+            )}
+          </>
         )}
       </div>
 
@@ -1653,6 +1694,8 @@ function describeEligibility(award: SpecialAward): string {
   switch (award.eligibility_type) {
     case "by_position":
       return `Eligible: ${award.eligibility_position}s only`;
+    case "by_position_group":
+      return `Eligible: ${positionGroupPlural(award.eligibility_position_group)} only`;
     case "max_age":
       return `Eligible: age ≤ ${award.eligibility_max_age}`;
     default:
