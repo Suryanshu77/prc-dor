@@ -532,7 +532,7 @@ function TheCreator() {
           href={PORTFOLIO_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-gold-gradient px-6 py-3 text-sm font-semibold text-background shadow-gold transition-all duration-300 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] motion-reduce:transition-none md:w-auto"
+          className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-multicolour-gradient animate-gradient-move px-6 py-3 text-sm font-semibold text-background shadow-multicolour-glow transition-all duration-300 hover:opacity-95 hover:shadow-multicolour-glow-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] motion-reduce:transition-none md:w-auto"
         >
           Explore My Portfolio
           <ExternalLink className="h-4 w-4" aria-hidden="true" />

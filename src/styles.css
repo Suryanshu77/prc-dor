@@ -245,6 +245,14 @@
     transform: scale(0.7);
   }
 }
+@keyframes gradient-move {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
 
 @utility animate-float {
   animation: float 4s ease-in-out infinite;
@@ -258,6 +266,26 @@
 @utility animate-live-dot {
   animation: live-dot 1.2s ease-in-out infinite;
 }
+@utility bg-multicolour-gradient {
+  background: linear-gradient(
+    90deg,
+    var(--spectrum-1) 0%,
+    var(--spectrum-2) 25%,
+    var(--spectrum-3) 50%,
+    var(--spectrum-4) 75%,
+    var(--gold) 100%
+  );
+  background-size: 200% auto;
+}
+@utility animate-gradient-move {
+  animation: gradient-move 4s ease-in-out infinite;
+}
+@utility shadow-multicolour-glow {
+  box-shadow: 0 0 16px color-mix(in oklab, var(--spectrum-1) 25%, transparent);
+}
+@utility shadow-multicolour-glow-strong {
+  box-shadow: 0 0 28px color-mix(in oklab, var(--spectrum-1) 35%, transparent);
+}
 
 /* Reduced motion: keep the live badge readable, never hidden. */
 @media (prefers-reduced-motion: reduce) {
@@ -266,7 +294,8 @@
   .prc-countdown-popover,
   .prc-countdown-popover *,
   .live-badge,
-  .live-badge * {
+  .live-badge *,
+  .animate-gradient-move {
     animation: none !important;
     transition: none !important;
   }
