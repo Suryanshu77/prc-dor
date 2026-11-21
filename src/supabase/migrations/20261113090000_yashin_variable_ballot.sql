@@ -10,7 +10,7 @@
 --
 -- WHAT CHANGES (forward-only; no previously applied migration is edited)
 --   1. admin_set_special_award_status
---        open threshold: yashin -> 3 nominees, every other award -> 5
+--        open threshold: yashin -> 3 nominees, best_midfielder -> 3 nominees, every other award -> 5
 --   2. submit_special_ballot
 --        required ranking length:
 --          yashin  -> LEAST(GREATEST(nominees, 3), 5)   (3, 4 or 5)
@@ -42,7 +42,7 @@
 --   It was NOT executed against production while being authored.
 
 -- ---------------------------------------------------------------------------
--- 1. Opening threshold: 3 for Yashin, 5 for every other award.
+-- 1. Opening threshold: 3 for Yashin and Best Midfielder, 5 for every other award.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.admin_set_special_award_status(
   _award_id uuid,
@@ -69,7 +69,7 @@ BEGIN
   -- the previous version of this function behaved.
   SELECT sa.award_key INTO _key
   FROM public.special_awards sa WHERE sa.id = _award_id;
-  _min := CASE WHEN _key = 'yashin' THEN 3 ELSE 5 END;
+  _min := CASE WHEN _key = 'yashin' OR _key = 'best_midfielder' THEN 3 ELSE 5 END;
 
   SELECT count(*)::int INTO _awards
   FROM public.special_award_candidates WHERE award_id = _award_id;

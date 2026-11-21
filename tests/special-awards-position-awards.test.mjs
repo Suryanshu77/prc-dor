@@ -809,9 +809,18 @@ test("eligibility of the new awards is locked; legacy awards stay configurable",
   );
 });
 
-test("open threshold: four nominees block the open; five unlock it", async () => {
+test("open threshold: two nominees block the open; three unlock it", async () => {
   await asUser(adminId);
-  // Remove one midfielder -> 4/5.
+  // Currently 5 nominees (from the nomination matrix test).
+  // Remove three -> 2/3, below the new threshold of 3.
+  await db.query("SELECT public.admin_remove_nominee($1, $2)", [
+    midAward,
+    mids[2],
+  ]);
+  await db.query("SELECT public.admin_remove_nominee($1, $2)", [
+    midAward,
+    mids[3],
+  ]);
   await db.query("SELECT public.admin_remove_nominee($1, $2)", [
     midAward,
     mids[4],
@@ -822,7 +831,7 @@ test("open threshold: four nominees block the open; five unlock it", async () =>
         "SELECT public.admin_set_special_award_status($1, true, false)",
         [midAward],
       ),
-    /at least 5 candidates/,
+    /at least 3 candidates/,
   );
   const closed = await db.query(
     "SELECT voting_open FROM public.special_awards WHERE id = $1",
@@ -830,7 +839,7 @@ test("open threshold: four nominees block the open; five unlock it", async () =>
   );
   assert.equal(closed.rows[0].voting_open, false, "award must stay closed");
 
-  // Restore the fifth nominee and open.
+  // Restore one nominee -> 3/3, which meets the threshold -> open.
   await db.query("SELECT public.admin_nominate_player($1, $2)", [
     midAward,
     mids[4],
@@ -839,11 +848,38 @@ test("open threshold: four nominees block the open; five unlock it", async () =>
     "SELECT public.admin_set_special_award_status($1, true, false)",
     [midAward],
   );
-  const open = await db.query(
+  const opened = await db.query(
     "SELECT voting_open FROM public.special_awards WHERE id = $1",
     [midAward],
   );
-  assert.equal(open.rows[0].voting_open, true);
+  assert.equal(
+    opened.rows[0].voting_open,
+    true,
+    "award must open at 3 nominees",
+  );
+
+  // Close voting so we can restore the remaining nominees for downstream tests.
+  await db.query(
+    "SELECT public.admin_set_special_award_status($1, false, false)",
+    [midAward],
+  );
+  await db.query("SELECT public.admin_nominate_player($1, $2)", [
+    midAward,
+    mids[3],
+  ]);
+  await db.query("SELECT public.admin_nominate_player($1, $2)", [
+    midAward,
+    mids[2],
+  ]);
+  await db.query(
+    "SELECT public.admin_set_special_award_status($1, true, false)",
+    [midAward],
+  );
+  const final = await db.query(
+    "SELECT voting_open FROM public.special_awards WHERE id = $1",
+    [midAward],
+  );
+  assert.equal(final.rows[0].voting_open, true, "voting must be open again");
 });
 
 test("nominations are locked while voting is open", async () => {

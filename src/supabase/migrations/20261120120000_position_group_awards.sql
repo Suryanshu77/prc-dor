@@ -572,7 +572,7 @@ BEGIN
         AND sa.award_key = ANY(_keys)
       GROUP BY sa.id, sa.award_key, sa.title
     LOOP
-      _min := CASE WHEN _award.award_key = 'yashin' THEN 3 ELSE 5 END;
+      _min := CASE WHEN _award.award_key = 'yashin' OR _award.award_key = 'best_midfielder' THEN 3 ELSE 5 END;
       IF _award.nominees < _min THEN
         _blocked := _blocked || format('%s (%s/%s nominees)', _award.title, _award.nominees, _min);
       END IF;

@@ -204,8 +204,8 @@ test("opening is validated for EVERY award before any write", () => {
   assert.ok(validation.length > 0, "pre-write validation block missing");
   assert.match(
     validation,
-    /CASE WHEN _award\.award_key = 'yashin' THEN 3 ELSE 5 END/,
-    "thresholds must match admin_set_special_award_status (yashin 3, others 5)",
+    /CASE WHEN _award\.award_key = 'yashin' OR _award\.award_key = 'best_midfielder' THEN 3 ELSE 5 END/,
+    "thresholds must match admin_set_special_award_status (yashin 3, best_midfielder 3, others 5)",
   );
   assert.ok(
     validation.indexOf("RAISE EXCEPTION") > validation.indexOf("FOR _award IN"),
@@ -402,7 +402,7 @@ test("open-all rolls back completely while any award misses its threshold", asyn
   await expectStatuses(allClosed());
 });
 
-test("nominations satisfy the thresholds (5 / 3 / 5 / 5 / 5 / 5)", async () => {
+test("nominations satisfy the thresholds (5 / 3 / 5 / 5 / 3 / 5)", async () => {
   await asUser(adminId);
   const nominate = (awardKey, players) =>
     Promise.all(

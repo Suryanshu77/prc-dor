@@ -102,12 +102,12 @@ test("migration file name follows the convention and lands last in history", () 
   );
 });
 
-test("only Yashin gets the variable rule; every other award stays at five", () => {
+test("only Yashin and Best Midfielder open at three; every other award stays at five", () => {
   const status = fnBody(stripped, "admin_set_special_award_status");
   assert.match(
     status,
-    /_min := CASE WHEN _key = 'yashin' THEN 3 ELSE 5 END/,
-    "open threshold must be award-specific (yashin 3, others 5)",
+    /_min := CASE WHEN _key = 'yashin' OR _key = 'best_midfielder' THEN 3 ELSE 5 END/,
+    "open threshold must be award-specific (yashin 3, best_midfielder 3, others 5)",
   );
   assert.match(status, /_awards < _min/, "threshold must be applied");
 

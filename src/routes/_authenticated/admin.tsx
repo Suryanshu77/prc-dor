@@ -1510,7 +1510,11 @@ function AwardManageCard({
           </div>
           <div className="mt-0.5 text-xs text-muted-foreground">
             {award.description ?? describeEligibility(award)} ·{" "}
-            {candidates.length}/{award.award_key === "yashin" ? "3+" : "5+"}{" "}
+            {candidates.length}/
+            {"yashin" === award.award_key ||
+            "best_midfielder" === award.award_key
+              ? "3+"
+              : "5+"}{" "}
             nominees · {stats.voter_count} ballots · {stats.vote_count} ranked
             picks
           </div>
